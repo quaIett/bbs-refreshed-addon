@@ -18,14 +18,14 @@ public abstract class UITrackpadMixin
     @Shadow private Area plusOne;
     @Shadow private Area minusOne;
 
-    /** Main input surface — full rounded box. */
+    /** Main input surface — full rounded box with the hairline field border (design overhaul, 3). */
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V")
     )
     private void refreshedui$roundSurface(Area area, Batcher2D batcher, int color)
     {
-        RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.buttonsAndTrackpads());
+        RoundedAreas.renderField(area, batcher, color, UICornerRadii.buttonsAndTrackpads());
     }
 
     /**

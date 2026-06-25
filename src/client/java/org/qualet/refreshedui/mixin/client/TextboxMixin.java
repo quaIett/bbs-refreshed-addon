@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/** Rounds the text field background (3.2a). */
+/** Rounds the text field background (3.2a) and adds the hairline field border (design overhaul, 3). */
 @Mixin(Textbox.class)
 public abstract class TextboxMixin
 {
@@ -19,6 +19,6 @@ public abstract class TextboxMixin
     )
     private void refreshedui$roundBackground(Area area, Batcher2D batcher, int color)
     {
-        RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.interfaceChrome());
+        RoundedAreas.renderField(area, batcher, color, UICornerRadii.interfaceChrome());
     }
 }
