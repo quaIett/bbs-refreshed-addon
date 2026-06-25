@@ -2,7 +2,29 @@ plugins {
 	id 'fabric-loom' version '1.15-SNAPSHOT'
 }
 
-version = project.mod_version + "-1.20.1"
+// --- Multi-version build: one source tree, MC 1.20.1 / 1.20.4 ---
+// The source is byte-identical for MC 1.20.1 and 1.20.4 — only the toolchain
+// (yarn mappings, fabric-api, BBS dep jar) and the manifest pin differ.
+// Pick the target per build:
+//   ./gradlew build                 -> MC 1.20.1 (default)
+//   ./gradlew build -Pmc=1.20.4     -> MC 1.20.4
+//   ./gradlew build -Pmc=universal  -> single jar pinned >=1.20.1 <=1.20.4
+// The "universal" jar is built against the 1.20.1 toolchain (lowest common
+// members) and ships in Fabric intermediary mappings, so it loads on either
+// 1.20.1 or 1.20.4 as long as every vanilla member it touches is unchanged
+// between them (it is — render + font are the only vanilla touches).
+def mc = (project.findProperty("mc") ?: "1.20.1").toString()
+def MC = [
+	"1.20.1"   : [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3-1.20.1.jar", pin: "1.20.1"            , suffix: "1.20.1"],
+	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.3-1.20.4.jar", pin: "1.20.4"            , suffix: "1.20.4"],
+	"universal": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3-1.20.1.jar", pin: ">=1.20.1 <=1.20.4", suffix: "1.20.x"],
+]
+if (!MC.containsKey(mc)) {
+	throw new GradleException("Unsupported -Pmc=${mc}. Supported: ${MC.keySet().join(', ')}")
+}
+def mcCfg = MC[mc]
+
+version = project.mod_version + "-" + mcCfg.suffix
 group = project.maven_group
 
 base {
@@ -30,19 +52,20 @@ loom {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	minecraft "com.mojang:minecraft:${mcCfg.mc}"
+	mappings "net.fabricmc:yarn:${mcCfg.yarn}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${mcCfg.fabric}"
 
-	modImplementation files("libs/bbs-2.3-1.20.1.jar")
+	modImplementation files("libs/${mcCfg.bbs}")
 }
 
 processResources {
 	inputs.property "version", project.version
+	inputs.property "mc_pin", mcCfg.pin
 
 	filesMatching("fabric.mod.json") {
-		expand "version": project.version
+		expand "version": project.version, "mc_pin": mcCfg.pin
 	}
 }
 

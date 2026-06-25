@@ -22,7 +22,7 @@
 	"accessWidener": "refreshedui.accesswidener",
 	"depends": {
 		"fabricloader": ">=0.15.0",
-		"minecraft": ["1.20.1"],
+		"minecraft": "${mc_pin}",
 		"java": ">=17",
 		"fabric-api": "*",
 		"bbs": "*",

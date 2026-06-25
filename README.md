@@ -35,13 +35,16 @@ Every change is applied through [Mixins](https://github.com/SpongePowered/Mixin)
 
 ## Supported versions
 
-The addon is maintained per Minecraft version on separate branches:
+`master` covers **Minecraft 1.20.1 and 1.20.4** from one source tree — build a single **universal** jar that runs on both, or a version-specific jar if you prefer. 1.21.1 lives on its own branch because it needs a different render API.
 
-| Minecraft | Branch |
-|-----------|--------|
-| 1.20.4    | [`master`](../../tree/master) |
-| 1.20.1    | [`1.20.1`](../../tree/1.20.1) |
-| 1.21.1    | [`1.21.1`](../../tree/1.21.1) |
+| Target | Branch | Build |
+|--------|--------|-------|
+| 1.20.1 + 1.20.4 (one jar) | [`master`](../../tree/master) | `./gradlew build -Pmc=universal` |
+| 1.20.1 only | [`master`](../../tree/master) | `./gradlew build` (default) |
+| 1.20.4 only | [`master`](../../tree/master) | `./gradlew build -Pmc=1.20.4` |
+| 1.21.1 | [`1.21.1`](../../tree/1.21.1) | `./gradlew build` |
+
+The universal jar ships in Fabric intermediary mappings with a `>=1.20.1 <=1.20.4` pin. It works because the addon only touches version-stable code — almost everything is bbs-fs, plus a little vanilla render/font that is identical across 1.20.1–1.20.4.
 
 ## Requirements
 
@@ -56,16 +59,20 @@ The addon is maintained per Minecraft version on separate branches:
 > [!NOTE]
 > The bbs-fs mod jar is a **build dependency** and is intentionally **not** included in this repository — it is third-party software. You need to supply it yourself.
 
-1. Obtain the matching bbs-fs jar (e.g. `bbs-2.2-1.20.4.jar` for the `master` branch) and drop it into `libs/`.
+1. Obtain the matching bbs-fs jar and drop it into `libs/`:
+   - `bbs-2.3-1.20.1.jar` (used by the default and universal builds) and/or `bbs-2.3-1.20.4.jar`.
 2. Build the addon:
    ```bash
-   ./gradlew build
+   ./gradlew build -Pmc=universal  # one jar for MC 1.20.1 + 1.20.4
+   ./gradlew build                 # MC 1.20.1 only (default)
+   ./gradlew build -Pmc=1.20.4     # MC 1.20.4 only
    ```
-   The packaged jar is written to `build/libs/`.
+   The packaged jar is written to `build/libs/` (e.g. `refreshedui-0.1.0-1.20.x.jar` for the universal build).
 
-To launch a development client:
+To launch a development client (the same `-Pmc` selector applies):
 ```bash
-./gradlew runClient
+./gradlew runClient                 # Minecraft 1.20.1 (default)
+./gradlew runClient -Pmc=1.20.4     # Minecraft 1.20.4
 ```
 
 ## Installation
