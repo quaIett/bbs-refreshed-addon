@@ -8,6 +8,7 @@ import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
@@ -101,12 +102,12 @@ public abstract class UIFilmPreviewMixin
         }
     }
 
-    /** 3.10: active control highlight uses a rounded primary fill instead of the bevel highlight. */
+    /** 3.10: active control highlight uses a rounded primary fill instead of the bevel highlight. BBS 2.3 added a Direction arg. */
     @Redirect(
         method = "render",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundedHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundedHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }

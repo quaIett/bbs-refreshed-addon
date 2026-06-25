@@ -8,6 +8,7 @@ import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.OverlaySizes;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
@@ -71,12 +72,12 @@ public abstract class UIFilmPanelMixin
             : UIOverlay.addOverlay(context, panel, w, h);
     }
 
-    /** Top-bar editor tab active highlight: rounded primary fill (3.8). */
+    /** Top-bar editor tab active highlight: rounded primary fill (3.8). BBS 2.3 added a Direction arg. */
     @Redirect(
         method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundTabHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundTabHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }

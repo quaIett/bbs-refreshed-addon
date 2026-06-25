@@ -3,6 +3,8 @@ package org.qualet.refreshedui.mixin.client;
 import com.llamalad7.mixinextras.sugar.Local;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
+import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -23,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * </ul>
  *
  * <p>Targets the private static inner class {@code UIFilmPanel$UIDockStackTabs}. Its {@code render}
- * draws a background box (ordinal&nbsp;0), then per active tab a 2px box (ordinal&nbsp;1) + gradient.</p>
+ * draws a background box, then per active tab calls {@code UIDashboardPanels.renderHighlight} (BBS 2.3).</p>
  */
 @Mixin(targets = "mchorse.bbs_mod.ui.film.UIFilmPanel$UIDockStackTabs")
 public abstract class UIDockStackTabsMixin
@@ -38,24 +40,18 @@ public abstract class UIDockStackTabsMixin
         return active ? UIContrastColor.onPrimary() : color;
     }
 
-    /** 3.10b: replace the active-tab gradient with a rounded primary fill over the whole tab. */
+    /**
+     * 3.10b: replace the active-tab highlight with a rounded primary fill over the whole tab.
+     * BBS 2.3 draws it via {@code UIDashboardPanels.renderHighlight(batcher, Area.SHARED, Direction)}
+     * (Area.SHARED is pre-set to the full tab rect), so a single redirect of that call replaces the
+     * old gradientVBox + 2px-bar bevel.
+     */
     @Redirect(
         method = "render",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;gradientVBox(FFFFII)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundedActiveTab(Batcher2D batcher, float x1, float y1, float x2, float y2, int topColor, int bottomColor)
+    private void refreshedui$roundedActiveTab(Batcher2D batcher, Area area, Direction direction)
     {
-        /* gradientVBox spans x..ex and y..ey-2; add the 2px back for the full tab height. */
-        RoundedAreas.roundedBox(batcher, x1, y1, x2 - x1, (y2 + 2F) - y1, UICornerRadii.buttonsAndTrackpads(), BBSSettings.primaryColor(Colors.A100));
-    }
-
-    /** 3.10b: drop the 2px bottom bar of the active-tab bevel (the rounded fill replaces it). */
-    @Redirect(
-        method = "render",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 1)
-    )
-    private void refreshedui$dropActiveTabBar(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
-    {
-        /* no-op */
+        RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 }

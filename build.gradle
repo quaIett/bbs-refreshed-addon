@@ -35,7 +35,7 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation files("libs/bbs-2.2-1.20.4.jar")
+	modImplementation files("libs/bbs-2.3-1.20.4.jar")
 }
 
 processResources {

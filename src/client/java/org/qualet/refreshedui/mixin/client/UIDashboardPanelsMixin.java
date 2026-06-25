@@ -8,6 +8,7 @@ import mchorse.bbs_mod.ui.framework.elements.UIScrollView;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -42,11 +43,16 @@ public abstract class UIDashboardPanelsMixin
     @Shadow
     public UIDashboardPanel panel;
 
+    /**
+     * BBS 2.3 added a Direction arg to renderHighlight; the taskbar active-button highlight now calls the
+     * 3-arg form from the panelButtons pre-render lambda. Scope to that lambda (lambda$new$0) so the
+     * deprecated 2-arg delegators in this class are NOT redirected.
+     */
     @Redirect(
-        method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        method = "lambda$new$0",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
