@@ -9,7 +9,9 @@ import mchorse.bbs_mod.ui.utils.icons.Icons;
 import org.qualet.refreshedui.RefreshedUiAddon;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -46,5 +48,33 @@ public abstract class BBSSettingsMixin
         RefreshedUiAddon.uiCornerRadius = radius;
         RefreshedUiAddon.showTooltips = tooltips;
         RefreshedUiAddon.refreshedGroup = group;
+    }
+
+    /*
+     * Palette overhaul (design): retarget the DARK surface values of the theme. Each surface getter
+     * folds its dark constant in as a literal, so @ModifyConstant swaps only that literal — the
+     * light-theme values and the brightness/theme machinery (getThemeSurface -> applyBackgroundBrightness)
+     * stay intact, so the brightness slider and light theme keep working.
+     *
+     *   deepSurface   -> 181b1f   (the global panel background)
+     *   baseSurface   -> 171a1e   ("group" background; ~matches deep so it currently reads as one)
+     *   raisedSurface -> 14171b   (the recessed input fill: text fields, trackpads, ...)
+     */
+    @ModifyConstant(method = "baseSurface", constant = @Constant(intValue = 0xff171a1f))
+    private static int refreshedui$baseDark(int original)
+    {
+        return 0xff171a1e;
+    }
+
+    @ModifyConstant(method = "deepSurface", constant = @Constant(intValue = 0xff0f1217))
+    private static int refreshedui$deepDark(int original)
+    {
+        return 0xff181b1f;
+    }
+
+    @ModifyConstant(method = "raisedSurface", constant = @Constant(intValue = 0xff1d2127))
+    private static int refreshedui$raisedDark(int original)
+    {
+        return 0xff14171b;
     }
 }

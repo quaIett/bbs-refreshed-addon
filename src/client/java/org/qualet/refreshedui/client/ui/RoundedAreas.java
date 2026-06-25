@@ -54,7 +54,7 @@ public final class RoundedAreas
     public static void renderField(Area area, Batcher2D batcher, int fillColor, float radius)
     {
         IRoundedBatcher rounded = (IRoundedBatcher) batcher;
-        int border = BBSSettings.isLightTheme() ? 0x26000000 : 0x33ffffff;
+        int border = BBSSettings.isLightTheme() ? 0x26000000 : 0xff33363a;
         float inset = FIELD_BORDER_INSET;
 
         rounded.roundedBox(area.x, area.y, area.w, area.h, radius, border);

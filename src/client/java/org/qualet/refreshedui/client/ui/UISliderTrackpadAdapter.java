@@ -35,8 +35,6 @@ import mchorse.bbs_mod.utils.colors.Colors;
  */
 public class UISliderTrackpadAdapter extends UITrackpad
 {
-    private static final int HANDLE_REST_COLOR = 0xCCCCCC;
-
     private final Area handleArea = new Area();
 
     private boolean sliderDragging;
@@ -388,11 +386,11 @@ public class UISliderTrackpadAdapter extends UITrackpad
             batcher.roundedBoxSides(this.area.x, this.area.y, fillWidth, this.area.h, radius, primary, true, false);
         }
 
-        /* Handle — opaque rounded pill; light grey at rest, full white on hover/drag (colour change,
-         * not alpha, so nothing shows through). */
+        /* Handle — opaque rounded pill; the accent lightened ~30% at rest, full white on hover/drag
+         * (colour change, not alpha, so nothing shows through). */
         int handleColor = this.sliderDragging || this.handleArea.isInside(context)
             ? Colors.WHITE
-            : Colors.opaque(HANDLE_REST_COLOR);
+            : Colors.mulRGB(primary, 1.3F);
 
         batcher.roundedBox(this.handleArea.x, this.handleArea.y, this.handleArea.w, this.handleArea.h, this.handleArea.w / 2F, handleColor);
 
