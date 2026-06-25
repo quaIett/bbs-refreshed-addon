@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+out/
+bin/
+
+# Loom / runtime
+run*/
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local BBS dependency — third-party, not redistributed
+libs/
+
+# Local working docs / tooling
+.claude/
+CLAUDE.md
+PLAN.md
+OVERWRITES.md

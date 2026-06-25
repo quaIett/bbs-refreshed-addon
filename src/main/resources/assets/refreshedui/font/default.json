@@ -1,0 +1,14 @@
+{
+    "providers": [
+        {
+            "type": "caxton",
+            "regular": { "file": "refreshedui:inter_regular.otf", "shadow_offset": 0.5 },
+            "bold": { "file": "refreshedui:inter_bold.otf", "shadow_offset": 0.5 },
+            "italic": { "file": "refreshedui:inter_italic.otf", "shadow_offset": 0.5 },
+            "bold_italic": { "file": "refreshedui:inter_bold_italic.otf", "shadow_offset": 0.5 }
+        },
+        { "type": "reference", "id": "minecraft:include/space" },
+        { "type": "reference", "id": "minecraft:include/default" },
+        { "type": "reference", "id": "minecraft:include/unifont" }
+    ]
+}

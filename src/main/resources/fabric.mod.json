@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "refreshedui",
+	"version": "${version}",
+	"name": "BBS Refreshed UI",
+	"description": "BBS addon: refreshed UI theme, injected via mixins to keep base bbs-fs clean.",
+	"authors": ["qualet"],
+	"license": "MIT",
+	"icon": "assets/refreshedui/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": ["org.qualet.refreshedui.client.RefreshedUiClient"],
+		"bbs-addon": ["org.qualet.refreshedui.RefreshedUiAddon"]
+	},
+	"mixins": [
+		"refreshedui.mixins.json",
+		{
+			"config": "refreshedui.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"accessWidener": "refreshedui.accesswidener",
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"minecraft": ["1.20.4"],
+		"java": ">=17",
+		"fabric-api": "*",
+		"bbs": "*",
+		"caxton": "*"
+	}
+}
