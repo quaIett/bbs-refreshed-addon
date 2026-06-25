@@ -6,6 +6,7 @@ import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,8 +20,9 @@ import java.util.Map;
 /**
  * Replay category tabs (position / pose / …):
  * <ul>
- *   <li>3.9 — the active tab's icon draws black (Colors.A100 = opaque black) over the primary
- *       highlight. Updated on every category change (setCategory) rather than per-frame; the initial
+ *   <li>3.9 — the active tab's icon draws with the adaptive contrast color (white/black by primary
+ *       brightness) over the primary highlight. Updated on every category change (setCategory) rather
+ *       than per-frame; the initial
  *       {@code setCategory(PLAYER)} call in the constructor seeds the flags after the buttons are
  *       created.</li>
  *   <li>3.10b — the active-tab indicator's bevel (a 2px bottom bar + vertical gradient) becomes a
@@ -42,9 +44,11 @@ public abstract class UIReplaysEditorMixin
     @Inject(method = "setCategory", at = @At("TAIL"))
     private void refreshedui$blackenActiveTab(UIReplaysEditor.ReplayCategory c, CallbackInfo ci)
     {
+        int activeColor = UIContrastColor.onPrimary();
+
         for (Map.Entry<UIReplaysEditor.ReplayCategory, UIIcon> entry : this.tabButtons.entrySet())
         {
-            entry.getValue().active(entry.getKey() == c).activeColor(Colors.A100);
+            entry.getValue().active(entry.getKey() == c).activeColor(activeColor);
         }
     }
 

@@ -8,9 +8,11 @@ import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,8 +24,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Preview control bar:
  * <ul>
- *   <li>3.9 — active buttons draw a black icon over the highlight (Colors.A100). The icon glyphs are
- *       drawn by the UIIcon children during {@code super.render(...)}, after this HEAD inject.</li>
+ *   <li>3.9 — active buttons draw the adaptive contrast icon (white/black by primary brightness) over
+ *       the highlight. The icon glyphs are drawn by the UIIcon children during {@code super.render(...)},
+ *       after this HEAD inject.</li>
  *   <li>3.10 — the bar gradient becomes a rounded chromeSurface bar, the 5 active highlights become
  *       rounded fills, and the bar is offset up from the bottom edge.</li>
  * </ul>
@@ -57,15 +60,17 @@ public abstract class UIFilmPreviewMixin
     @Shadow
     public UIIcon recordVideo;
 
-    /** 3.9: active control buttons render a black icon over the highlight. */
+    /** 3.9: active control buttons render the adaptive contrast icon over the highlight. */
     @Inject(method = "render", at = @At("HEAD"))
     private void refreshedui$blackenActiveControls(UIContext context, CallbackInfo ci)
     {
-        this.flight.active(this.panel.isFlying()).activeColor(Colors.A100);
-        this.control.active(this.panel.getController().isControlling()).activeColor(Colors.A100);
-        this.recordReplay.active(this.panel.getController().isRecording()).activeColor(Colors.A100);
-        this.recordVideo.active(this.panel.recorder.isRecording()).activeColor(Colors.A100);
-        this.onionSkin.active(this.panel.getController().getOnionSkin().enabled.get()).activeColor(Colors.A100);
+        int active = UIContrastColor.onPrimary();
+
+        this.flight.active(this.panel.isFlying()).activeColor(active);
+        this.control.active(this.panel.getController().isControlling()).activeColor(active);
+        this.recordReplay.active(this.panel.getController().isRecording()).activeColor(active);
+        this.recordVideo.active(this.panel.recorder.isRecording()).activeColor(active);
+        this.onionSkin.active(this.panel.getController().getOnionSkin().enabled.get()).activeColor(active);
     }
 
     /** 3.10: offset the control bar up from the preview bottom edge. */
@@ -97,12 +102,12 @@ public abstract class UIFilmPreviewMixin
         }
     }
 
-    /** 3.10: active control highlight uses a rounded primary fill instead of the bevel highlight. */
+    /** 3.10: active control highlight uses a rounded primary fill instead of the bevel highlight. BBS 2.3 added a Direction arg. */
     @Redirect(
         method = "render",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundedHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundedHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }

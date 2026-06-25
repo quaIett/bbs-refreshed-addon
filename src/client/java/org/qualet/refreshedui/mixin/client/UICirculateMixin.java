@@ -1,11 +1,14 @@
 package org.qualet.refreshedui.mixin.client;
 
+import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UICirculate;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
@@ -13,12 +16,20 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * UICirculate theme:
  * <ul>
  *   <li>3.2a — rounded background ({@code bevelBox} kept when rounding is off);</li>
- *   <li>3.4 — black label without shadow ({@code textShadow} -> {@code text}, color A100).</li>
+ *   <li>3.4 — label without shadow ({@code textShadow} -> {@code text});</li>
+ *   <li>3.17 — adaptive label color: white or black by the brightness of the fill (custom color or the
+ *       BBS primary color), matching {@code UIButton}.</li>
  * </ul>
  */
 @Mixin(UICirculate.class)
 public abstract class UICirculateMixin
 {
+    @Shadow
+    public boolean custom;
+
+    @Shadow
+    public int customColor;
+
     @Redirect(
         method = "renderSkin",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;bevelBox(IIIIIZZ)V")
@@ -41,8 +52,10 @@ public abstract class UICirculateMixin
         method = "renderSkin",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;textShadow(Ljava/lang/String;FFI)V")
     )
-    private void refreshedui$blackLabel(Batcher2D batcher, String label, float x, float y, int color)
+    private void refreshedui$adaptiveLabel(Batcher2D batcher, String label, float x, float y, int color)
     {
-        batcher.text(label, x, y, Colors.A100);
+        int fill = Colors.A100 | (this.custom ? this.customColor : BBSSettings.primaryColor.get());
+
+        batcher.text(label, x, y, UIContrastColor.contrastOn(fill));
     }
 }

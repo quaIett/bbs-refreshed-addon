@@ -9,8 +9,8 @@ import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.UIScrollView;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
-import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.RefreshedUiAddon;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -70,13 +70,15 @@ public abstract class UISettingsOverlayPanelMixin
         batcher.box(x1, y1, x2, y2 - 1, color);
     }
 
-    /** Active module: black icon over the primary highlight (Colors.A100 = opaque black). */
+    /** Active module: adaptive contrast icon (white/black by primary brightness) over the primary highlight. */
     @Inject(method = "renderBackground", at = @At("TAIL"))
     private void refreshedui$blackenActiveModule(UIContext context, CallbackInfo ci)
     {
+        int activeColor = UIContrastColor.onPrimary();
+
         for (UIIcon icon : this.moduleButtons.values())
         {
-            icon.active(icon == this.currentModule).activeColor(Colors.A100);
+            icon.active(icon == this.currentModule).activeColor(activeColor);
         }
     }
 

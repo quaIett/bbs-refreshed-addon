@@ -8,9 +8,11 @@ import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.OverlaySizes;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -70,23 +72,23 @@ public abstract class UIFilmPanelMixin
             : UIOverlay.addOverlay(context, panel, w, h);
     }
 
-    /** Top-bar editor tab active highlight: rounded primary fill (3.8). */
+    /** Top-bar editor tab active highlight: rounded primary fill (3.8). BBS 2.3 added a Direction arg. */
     @Redirect(
         method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundTabHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundTabHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 
-    /** Active top-bar editor tab: black icon over the primary highlight (Colors.A100 = opaque black) (3.9). */
+    /** Active top-bar editor tab: adaptive contrast icon (white/black by primary brightness) over the highlight (3.9). */
     @Inject(method = "renderTopBarButton", at = @At("HEAD"))
     private void refreshedui$blackenTopBarButton(UIContext context, UIIcon button, boolean active, CallbackInfo ci)
     {
         if (button != null)
         {
-            button.active(active).activeColor(Colors.A100);
+            button.active(active).activeColor(UIContrastColor.onPrimary());
         }
     }
 }

@@ -8,8 +8,10 @@ import mchorse.bbs_mod.ui.framework.elements.UIScrollView;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,7 +27,8 @@ import java.util.function.Consumer;
  * Taskbar:
  * <ul>
  *   <li>3.8 — active-panel highlight uses a rounded primary fill instead of the bevel highlight;</li>
- *   <li>3.9 — every panel button gets a per-frame active flag so the active one's icon draws black.</li>
+ *   <li>3.9 — every panel button gets a per-frame active flag so the active one's icon draws with the
+ *       adaptive contrast color (white/black by primary brightness).</li>
  * </ul>
  */
 @Mixin(UIDashboardPanels.class)
@@ -40,17 +43,22 @@ public abstract class UIDashboardPanelsMixin
     @Shadow
     public UIDashboardPanel panel;
 
+    /**
+     * BBS 2.3 added a Direction arg to renderHighlight; the taskbar active-button highlight now calls the
+     * 3-arg form from the panelButtons pre-render lambda. Scope to that lambda (lambda$new$0) so the
+     * deprecated 2-arg delegators in this class are NOT redirected.
+     */
     @Redirect(
-        method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;)V")
+        method = "lambda$new$0",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundHighlight(Batcher2D batcher, Area area)
+    private void refreshedui$roundHighlight(Batcher2D batcher, Area area, Direction direction)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 
     /**
-     * Active button: black icon over the primary highlight (Colors.A100 = opaque black).
+     * Active button: adaptive contrast icon (white/black by primary brightness) over the primary highlight.
      * Wrap the existing pre-render callback so all buttons get their active flag set each frame,
      * then delegate to the original (which still draws the rounded highlight via the redirect above).
      */
@@ -61,11 +69,13 @@ public abstract class UIDashboardPanelsMixin
 
         this.panelButtons.preRender((context) ->
         {
+            int activeColor = UIContrastColor.onPrimary();
+
             for (int i = 0, c = this.panels.size(); i < c; i++)
             {
                 UIIcon button = (UIIcon) this.panelButtons.getChildren().get(i);
 
-                button.active(this.panel == this.panels.get(i)).activeColor(Colors.A100);
+                button.active(this.panel == this.panels.get(i)).activeColor(activeColor);
             }
 
             if (original != null)
