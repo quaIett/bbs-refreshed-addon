@@ -21,20 +21,34 @@ import mchorse.bbs_mod.utils.colors.Colors;
  *
  * <p>This exists because BBS form-property panels declare their fields as {@code UITrackpad} and a
  * mixin cannot change a field's type. By subclassing {@code UITrackpad} we stay assignable to those
- * fields, and a {@code @Redirect} on the {@code new UITrackpad(...)} call swaps in this adapter. The
- * slider visuals/input below are adapted from upstream {@code UISliderTrackpad} (which extends
- * {@code UIElement}, hence cannot be reused by inheritance here) — keep in sync if BBS changes it.</p>
+ * fields, and a {@code @Redirect} on the {@code new UITrackpad(...)} call swaps in this adapter.</p>
  *
- * <p>The three layers (track / active progress / handle) are drawn fully opaque so they never show
- * through one another; hover/drag feedback is a colour change, not an alpha change. Progress and
- * handle are rounded to match the addon theme.</p>
+ * <p><b>Design (slider redesign):</b> a thin rounded <i>rail</i> with a circular <i>knob</i> on the
+ * left, and a separate themed <i>number box</i> on the right for manual entry. The number box reuses
+ * the inherited {@link UITrackpad#textbox} sub-element: in slider mode {@link #layoutSlider()} shrinks
+ * {@code textbox.area} to just that right box, so clicking it focuses native text editing (caret,
+ * parsing, live value update) — manual entry comes essentially for free. The rail handles slider
+ * drag; the box handles typing.</p>
  *
  * <p>When the range is not finite-both ({@code hasSliderRange()} is false) every overridden method
  * falls through to {@code super}, so unbounded / one-sided trackpads keep their original textbox
- * behaviour untouched.</p>
+ * behaviour untouched (and {@code textbox.area} stays the full element).</p>
  */
 public class UISliderTrackpadAdapter extends UITrackpad
 {
+    /** Rail thickness (the thin track line); the clickable rail strip is full element height. */
+    private static final int RAIL_HEIGHT = 4;
+    /** Gap between the rail strip and the number box. */
+    private static final int BOX_GAP = 6;
+    /** Number-box width clamps (the right manual-entry field). */
+    private static final int BOX_MIN_W = 24;
+    private static final int BOX_MAX_W = 46;
+    /** Knob fill at rest; brightens to white and grows by 1px on hover/drag. */
+    private static final int KNOB_REST = 0xffe6e6ea;
+    private static final int KNOB_SEGMENTS = 24;
+
+    /** Left strip that hosts the rail + knob (the element minus the number box). */
+    private final Area railArea = new Area();
     private final Area handleArea = new Area();
 
     private boolean sliderDragging;
@@ -70,16 +84,23 @@ public class UISliderTrackpadAdapter extends UITrackpad
         return this.sliderDragging || super.isDragging();
     }
 
-    /* Slider geometry (adapted from UISliderTrackpad) */
+    /* Slider geometry — all measured against railArea (the left strip), not the full element. */
 
-    private int getHandleWidth()
+    /** Carve the element into [ rail strip | gap | number box ]; the box becomes {@code textbox.area}. */
+    private void layoutSlider()
     {
-        return Math.min(Math.max(this.area.h / 3, 6), 10);
+        int boxW = MathUtils.clamp(this.area.w / 4, BOX_MIN_W, BOX_MAX_W);
+        boxW = Math.min(boxW, Math.max(BOX_MIN_W, this.area.w - BOX_GAP - 16));
+
+        int railW = Math.max(1, this.area.w - boxW - BOX_GAP);
+
+        this.railArea.set(this.area.x, this.area.y, railW, this.area.h);
+        this.textbox.area.set(this.area.ex() - boxW, this.area.y, boxW, this.area.h);
     }
 
-    private int getHandlePadding()
+    private int getKnobRadius()
     {
-        return this.getHandleWidth() / 2;
+        return MathUtils.clamp(this.area.h / 3, 4, 5);
     }
 
     private float getProgress()
@@ -94,12 +115,12 @@ public class UISliderTrackpadAdapter extends UITrackpad
 
     private int getHandleCenter()
     {
-        int handlePadding = this.getHandlePadding();
-        int handleMinX = this.area.x + handlePadding;
-        int handleMaxX = this.area.ex() - handlePadding;
-        int handleRange = Math.max(handleMaxX - handleMinX, 0);
+        int pad = this.getKnobRadius();
+        int minX = this.railArea.x + pad;
+        int maxX = this.railArea.ex() - pad;
+        int range = Math.max(maxX - minX, 0);
 
-        return handleMinX + Math.round(handleRange * this.getProgress());
+        return minX + Math.round(range * this.getProgress());
     }
 
     private void updateHandleArea()
@@ -111,18 +132,17 @@ public class UISliderTrackpadAdapter extends UITrackpad
             return;
         }
 
-        int handleWidth = this.getHandleWidth();
-        int handleCenter = this.getHandleCenter();
+        int r = this.getKnobRadius();
 
-        this.handleArea.set(handleCenter - handleWidth / 2, this.area.y, handleWidth, this.area.h);
+        this.handleArea.set(this.getHandleCenter() - r, this.area.y, r * 2, this.area.h);
     }
 
     private double getValueFromMouse(int mouseX)
     {
         int centerX = mouseX - this.dragOffsetX;
-        int handlePadding = this.getHandlePadding();
-        int left = this.area.x + handlePadding;
-        int width = Math.max(this.area.w - handlePadding * 2, 1);
+        int pad = this.getKnobRadius();
+        int left = this.railArea.x + pad;
+        int width = Math.max(this.railArea.w - pad * 2, 1);
         double factor = MathUtils.clamp((centerX - left) / (double) width, 0D, 1D);
 
         return this.min + factor * (this.max - this.min);
@@ -194,6 +214,7 @@ public class UISliderTrackpadAdapter extends UITrackpad
 
         if (this.hasSliderRange())
         {
+            this.layoutSlider();
             this.updateHandleArea();
         }
     }
@@ -223,6 +244,25 @@ public class UISliderTrackpadAdapter extends UITrackpad
         if (context.mouseButton != 0)
         {
             return false;
+        }
+
+        /* Right number box — focus native text editing and place the caret. */
+        if (this.textbox.area.isInside(context))
+        {
+            if (!this.textbox.isFocused())
+            {
+                context.focus(this);
+            }
+
+            this.textbox.mouseClicked(context.mouseX, context.mouseY, context.mouseButton);
+
+            return true;
+        }
+
+        /* Anywhere else (the rail strip) — leave the box if we were editing, then scrub. */
+        if (this.textbox.isFocused())
+        {
+            context.unfocus();
         }
 
         this.updateHandleArea();
@@ -307,6 +347,12 @@ public class UISliderTrackpadAdapter extends UITrackpad
             return super.subKeyPressed(context);
         }
 
+        /* Editing the number box — let the native textbox handle typing, caret, enter, etc. */
+        if (this.textbox.isFocused())
+        {
+            return super.subKeyPressed(context);
+        }
+
         if (this.sliderDragging && context.isPressed(GLFW.GLFW_KEY_ESCAPE))
         {
             this.cancelDragging();
@@ -347,6 +393,12 @@ public class UISliderTrackpadAdapter extends UITrackpad
             return super.subTextInput(context);
         }
 
+        /* Only the focused number box accepts typed characters (the rail itself is not a text field). */
+        if (this.textbox.isFocused())
+        {
+            return super.subTextInput(context);
+        }
+
         return false;
     }
 
@@ -362,44 +414,59 @@ public class UISliderTrackpadAdapter extends UITrackpad
             return;
         }
 
-        this.updateHandleArea();
+        if (this.railArea.w <= 0)
+        {
+            this.layoutSlider();
+        }
 
         if (this.sliderDragging)
         {
             this.updateDragging(context.mouseX);
-            this.updateHandleArea();
         }
+
+        this.updateHandleArea();
 
         IRoundedBatcher batcher = (IRoundedBatcher) context.batcher;
-        float radius = UICornerRadii.buttonsAndTrackpads();
         int primary = Colors.opaque(BBSSettings.primaryColor.get());
-        int fillX = MathUtils.clamp(this.getHandleCenter(), this.area.x, this.area.ex());
-        int fillWidth = fillX - this.area.x;
 
-        /* Track (inactive) — rounded input surface, matching the addon theme (see UITrackpadMixin). */
-        RoundedAreas.renderRounded(this.area, context.batcher, BBSSettings.inputSurface(), radius);
+        /* Rail — a thin rounded track, vertically centred in the strip. */
+        int railH = Math.min(RAIL_HEIGHT, this.area.h);
+        int railY = this.area.my() - railH / 2;
+        float railRadius = railH / 2F;
 
-        /* Active progress — opaque so the track does not show through; rounded on the left to match
-         * the track, squared on the right where the handle sits over it. */
+        batcher.roundedBox(this.railArea.x, railY, this.railArea.w, railH, railRadius, BBSSettings.dividerColor());
+
+        int knobCx = this.getHandleCenter();
+        int fillWidth = MathUtils.clamp(knobCx, this.railArea.x, this.railArea.ex()) - this.railArea.x;
+
         if (fillWidth > 0)
         {
-            batcher.roundedBoxSides(this.area.x, this.area.y, fillWidth, this.area.h, radius, primary, true, false);
+            batcher.roundedBoxSides(this.railArea.x, railY, fillWidth, railH, railRadius, primary, true, false);
         }
 
-        /* Handle — opaque rounded pill; the accent lightened ~30% at rest, full white on hover/drag
-         * (colour change, not alpha, so nothing shows through). */
-        int handleColor = this.sliderDragging || this.handleArea.isInside(context)
-            ? Colors.WHITE
-            : Colors.mulRGB(primary, 1.3F);
+        /* Knob — circular; near-white at rest, full white and 1px larger on hover/drag. */
+        boolean knobHot = this.sliderDragging || this.handleArea.isInside(context);
+        int knobR = this.getKnobRadius();
 
-        batcher.roundedBox(this.handleArea.x, this.handleArea.y, this.handleArea.w, this.handleArea.h, this.handleArea.w / 2F, handleColor);
+        batcher.filledCircle(knobCx, this.area.my(), knobHot ? knobR + 1F : knobR, knobHot ? Colors.WHITE : KNOB_REST, KNOB_SEGMENTS);
 
-        FontRenderer font = context.batcher.getFont();
-        String label = this.forcedLabel == null ? UITrackpad.format(this.value) : this.forcedLabel.get();
-        int lx = this.area.ex() - 6 - font.getWidth(label);
-        int ly = this.area.my() - font.getHeight() / 2;
+        /* Number box (right) — manual entry. Focused: native editing (bg via TextboxMixin + caret +
+         * focus underline). Otherwise: our themed field with the value centred. */
+        if (this.textbox.isFocused())
+        {
+            this.textbox.render(context);
+        }
+        else
+        {
+            RoundedAreas.renderField(this.textbox.area, context.batcher, BBSSettings.inputSurface(), UICornerRadii.buttonsAndTrackpads());
 
-        context.batcher.text(label, lx, ly, Colors.WHITE);
+            FontRenderer font = context.batcher.getFont();
+            String label = this.forcedLabel == null ? UITrackpad.format(this.value) : this.forcedLabel.get();
+            int lx = this.textbox.area.mx(font.getWidth(label));
+            int ly = this.textbox.area.my() - font.getHeight() / 2;
+
+            context.batcher.text(label, lx, ly, Colors.WHITE);
+        }
 
         this.renderLockedArea(context);
 
