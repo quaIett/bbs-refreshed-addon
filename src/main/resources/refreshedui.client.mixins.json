@@ -5,6 +5,7 @@
     "compatibilityLevel": "JAVA_17",
     "client": [
         "Batcher2DMixin",
+        "Batcher2DIconFilterMixin",
         "Batcher2DFontMixin",
         "ContextActionMixin",
         "DarkTooltipStyleMixin",
