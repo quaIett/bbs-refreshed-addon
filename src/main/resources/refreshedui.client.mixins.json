@@ -50,6 +50,7 @@
         "UISettingsOverlayPanelMixin",
         "UISelectorsOverlayPanelMixin",
         "UITexturePainterMixin",
+        "UITextureTabElementMixin",
         "UIToggleMixin",
         "UITooltipMixin",
         "UITrackpadMixin"
