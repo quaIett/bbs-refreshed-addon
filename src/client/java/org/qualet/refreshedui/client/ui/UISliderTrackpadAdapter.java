@@ -446,7 +446,7 @@ public class UISliderTrackpadAdapter extends UITrackpad
 
         /* Knob — circular; near-white at rest, full white and 1px larger on hover/drag. */
         boolean knobHot = this.sliderDragging || this.handleArea.isInside(context);
-        int knobR = this.getKnobRadius();
+        float knobR = this.getKnobRadius() - 1.5F;
 
         batcher.filledCircle(knobCx, this.area.my(), knobHot ? knobR + 1F : knobR, knobHot ? Colors.WHITE : KNOB_REST, KNOB_SEGMENTS);
 
