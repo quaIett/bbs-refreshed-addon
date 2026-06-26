@@ -24,7 +24,10 @@ public class RefreshedUiAddon implements BBSAddonMod
     /** Show hover tooltips. Default true (= original behavior). */
     public static ValueBoolean showTooltips;
 
-    /** Nested "refreshed" group under personalization holding the two settings above. */
+    /** Master switch for all animation-core effects. Default true. Read via {@code client.anim.Animations}. */
+    public static ValueBoolean animations;
+
+    /** Nested "refreshed" group under personalization holding the settings above. */
     public static ValueGroup refreshedGroup;
 
     /**

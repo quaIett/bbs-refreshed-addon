@@ -33,6 +33,10 @@ public class RefreshedUiStrings
         set(l10n, "show_tooltips-comment",
             "When enabled, hint tooltips appear when hovering the mouse over interface elements. When disabled, they stay hidden.",
             "Если включено, подсказки появляются при наведении мыши на элементы интерфейса. Если выключено — остаются скрытыми.", ru);
+        set(l10n, "animations", "Interface animations", "Анимации интерфейса", ru);
+        set(l10n, "animations-comment",
+            "When enabled, UI animations play (e.g. the per-letter text reveal when switching editors). Disable to turn all interface animations off.",
+            "Если включено, проигрываются анимации интерфейса (например, посимвольное появление текста при переключении редакторов). Выключите, чтобы отключить все анимации интерфейса.", ru);
     }
 
     private static void set(L10n l10n, String suffix, String en, String ru, boolean useRu)

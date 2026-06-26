@@ -63,7 +63,7 @@ public final class PanelTransitions
      */
     public static Animator activeAnimator()
     {
-        if (appearAnim == null)
+        if (appearAnim == null || !Animations.enabled())
         {
             return null;
         }
