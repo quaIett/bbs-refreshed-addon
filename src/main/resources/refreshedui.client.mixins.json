@@ -39,6 +39,7 @@
         "UIReplaysEditorMixin",
         "UIReplaysListPanelMixin",
         "UIReplaysOverlayPanelMixin",
+        "UISectionMixin",
         "UISelectionScreenMixin",
         "UISettingsOverlayPanelMixin",
         "UISelectorsOverlayPanelMixin",
