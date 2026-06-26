@@ -38,6 +38,7 @@
         "UILabelFormPanelMixin",
         "UIOverlayMixin",
         "UIOverlayPanelMixin",
+        "UIPropTransformMixin",
         "UIReplayListMixin",
         "UIReplayPropertiesPanelMixin",
         "UIReplaysEditorMixin",
@@ -53,7 +54,8 @@
         "UITextureTabElementMixin",
         "UIToggleMixin",
         "UITooltipMixin",
-        "UITrackpadMixin"
+        "UITrackpadMixin",
+        "UITransformMixin"
     ],
     "injectors": {
         "defaultRequire": 1
