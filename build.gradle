@@ -15,9 +15,9 @@ plugins {
 // between them (it is — render + font are the only vanilla touches).
 def mc = (project.findProperty("mc") ?: "1.20.1").toString()
 def MC = [
-	"1.20.1"   : [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3-1.20.1.jar", pin: "1.20.1"            , suffix: "1.20.1"],
-	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.3-1.20.4.jar", pin: "1.20.4"            , suffix: "1.20.4"],
-	"universal": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3-1.20.1.jar", pin: ">=1.20.1 <=1.20.4", suffix: "1.20.x"],
+	"1.20.1"   : [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3.1-1.20.1.jar", pin: "1.20.1"            , suffix: "1.20.1"],
+	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.3.1-1.20.4.jar", pin: "1.20.4"            , suffix: "1.20.4"],
+	"universal": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.3.1-1.20.1.jar", pin: ">=1.20.1 <=1.20.4", suffix: "1.20.x"],
 ]
 if (!MC.containsKey(mc)) {
 	throw new GradleException("Unsupported -Pmc=${mc}. Supported: ${MC.keySet().join(', ')}")
