@@ -3,6 +3,7 @@ package org.qualet.refreshedui.mixin.client;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.film.UIFilmPanel;
 import mchorse.bbs_mod.ui.framework.UIContext;
+import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
@@ -10,6 +11,7 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.PanelTransitions;
 import org.qualet.refreshedui.client.ui.OverlaySizes;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -90,5 +92,17 @@ public abstract class UIFilmPanelMixin
         {
             button.active(active).activeColor(UIContrastColor.onPrimary());
         }
+    }
+
+    /**
+     * Switching Film sub-editors (camera / replays / actions) arms the appear reveal. The root is the whole
+     * Film panel ({@code this}) rather than the selected editor element, because the editor's properties /
+     * replays panels are docked under {@code main} as siblings — not nested inside the editor — so only the
+     * panel-wide subtree captures all of the new editor's text (see {@link PanelTransitions}).
+     */
+    @Inject(method = "showPanel(Lmchorse/bbs_mod/ui/framework/elements/UIElement;)V", at = @At("TAIL"))
+    private void refreshedui$animateEditorAppear(UIElement element, CallbackInfo ci)
+    {
+        PanelTransitions.onPanelAppear((UIElement) (Object) this);
     }
 }

@@ -10,6 +10,7 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.PanelTransitions;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -83,5 +84,18 @@ public abstract class UIDashboardPanelsMixin
                 original.accept(context);
             }
         });
+    }
+
+    /**
+     * Switching top-level dashboard panels (Morphing / Film / Model Blocks / ...) arms the appear reveal
+     * over the newly shown panel's subtree — its text staggers in (see {@link PanelTransitions}).
+     */
+    @Inject(method = "setPanel", at = @At("TAIL"))
+    private void refreshedui$animatePanelAppear(UIDashboardPanel panel, CallbackInfo ci)
+    {
+        if (panel != null)
+        {
+            PanelTransitions.onPanelAppear(panel);
+        }
     }
 }
