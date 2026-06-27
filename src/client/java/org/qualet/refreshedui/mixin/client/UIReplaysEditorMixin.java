@@ -4,6 +4,8 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.film.replays.UIReplaysEditor;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
+import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -52,24 +54,18 @@ public abstract class UIReplaysEditorMixin
         }
     }
 
-    /** 3.10b: replace the active-tab gradient with a rounded primary fill over the whole icon area. */
+    /**
+     * 3.10b: BBS 2.3 routes the active-category indicator through the shared
+     * {@link UIDashboardPanels#renderHighlight} helper (was a manual gradient + 2px bottom bar). Replace
+     * that call — scoped to the icon-bar pre-render lambda ({@code lambda$new$1}) — with a single rounded
+     * primary fill over the active icon, matching the dashboard taskbar / dock tabs.
+     */
     @Redirect(
         method = "lambda$new$1",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;gradientVBox(FFFFII)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
     )
-    private void refreshedui$roundedActiveTab(Batcher2D batcher, float x1, float y1, float x2, float y2, int topColor, int bottomColor)
+    private void refreshedui$roundedActiveTab(Batcher2D batcher, Area area, Direction direction)
     {
-        /* gradientVBox spans iconArea.x..ex() and iconArea.y..ey()-2; add the 2px back for the full height. */
-        RoundedAreas.roundedBox(batcher, x1, y1, x2 - x1, (y2 + 2F) - y1, UICornerRadii.buttonsAndTrackpads(), BBSSettings.primaryColor(Colors.A100));
-    }
-
-    /** 3.10b: drop the 2px bottom bar of the active-tab bevel (the rounded fill replaces it). */
-    @Redirect(
-        method = "lambda$new$1",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 1)
-    )
-    private void refreshedui$dropActiveTabBar(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
-    {
-        /* no-op */
+        RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 }
