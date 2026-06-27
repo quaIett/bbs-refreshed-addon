@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 @Mixin(UIToggle.class)
 public abstract class UIToggleMixin
 {
-    @Unique private static final int M3_THUMB_OFF = 0xffb0b0b8;
+    @Unique private static final int M3_THUMB_OFF = 0xff84868a;
     @Unique private static final int SWITCH_TRACK_W = 28;
     @Unique private static final int SWITCH_TRACK_H = 12;
     @Unique private static final int SWITCH_THUMB_R = 5;
