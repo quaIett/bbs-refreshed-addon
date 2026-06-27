@@ -3,6 +3,7 @@ package org.qualet.refreshedui.client.ui;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 
 /**
@@ -64,6 +65,31 @@ public final class RoundedAreas
     /** Field border ring thickness — a thin hairline (the fill is always painted, so a faint ring never
      * loses the field background). */
     private static final float FIELD_BORDER_INSET = 0.5F;
+
+    /**
+     * Selection-frame style for context-menu entries (design pass 2026-06-27): a BRIGHT inner stroke in
+     * {@code baseColor} around a MUTED (darkened) interior fill of the same hue — instead of a flat
+     * full-strength fill. {@code baseColor}'s hue is kept verbatim (primary for hover entries, the action's
+     * custom tint for colorful ones); only its alpha is dropped so the caller can pass e.g. {@code A50|primary}.
+     *
+     * <p>Same TWO-{@code roundedBox} trick as {@link #renderField}: a full-size border box, then the muted
+     * fill inset on top leaves a visible ring (a thin {@code roundedFrame} ring is eaten by corner AA).</p>
+     */
+    public static void renderSelectionFrame(Batcher2D batcher, float x, float y, float w, float h, int baseColor, float radius)
+    {
+        IRoundedBatcher rounded = (IRoundedBatcher) batcher;
+        int border = Colors.A100 | (baseColor & 0xFFFFFF);
+        int fill = Colors.mulRGB(border, SELECTION_FILL_DARKEN);
+        float inset = SELECTION_BORDER_INSET;
+
+        rounded.roundedBox(x, y, w, h, radius, border);
+        rounded.roundedBox(x + inset, y + inset, w - inset * 2F, h - inset * 2F, Math.max(0.5F, radius - inset), fill);
+    }
+
+    /** Selection-frame stroke thickness, px. */
+    private static final float SELECTION_BORDER_INSET = 1.5F;
+    /** Interior fill brightness vs the stroke colour — muted/darker per the design mockup. */
+    private static final float SELECTION_FILL_DARKEN = 0.4F;
 
     private RoundedAreas()
     {}

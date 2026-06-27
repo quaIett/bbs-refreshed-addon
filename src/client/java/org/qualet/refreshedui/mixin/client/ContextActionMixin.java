@@ -8,7 +8,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/** Rounds the context-menu entry hover highlight (3.6). */
+/**
+ * Context-menu entry hover highlight: a rounded primary selection frame (bright primary stroke + muted
+ * darker fill) instead of the engine's flat box. Mirrors {@link ColorfulContextActionMixin} (active toggle
+ * entries) so hover and active share one look.
+ */
 @Mixin(ContextAction.class)
 public abstract class ContextActionMixin
 {
@@ -18,6 +22,6 @@ public abstract class ContextActionMixin
     )
     private void refreshedui$roundHighlight(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
     {
-        RoundedAreas.roundedBox(batcher, x1, y1, x2 - x1, y2 - y1, UICornerRadii.buttonsAndTrackpads(), color);
+        RoundedAreas.renderSelectionFrame(batcher, x1, y1, x2 - x1, y2 - y1, color, UICornerRadii.buttonsAndTrackpads());
     }
 }
