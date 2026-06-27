@@ -18,16 +18,19 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Taskbar:
+ * Taskbar + the engine-wide selection highlight:
  * <ul>
- *   <li>3.8 — active-panel highlight uses a rounded primary fill instead of the bevel highlight;</li>
+ *   <li>3.8 — every selection highlight uses a rounded primary fill instead of the bevel. BBS funnels
+ *       ALL selection indicators through the static {@link UIDashboardPanels#renderHighlight} helper, so
+ *       one HEAD inject that cancels its body and draws the rounded fill covers every call site
+ *       (taskbar, dock tabs, UIIcons, replay / tool / form-editor tabs, settings sidebar, control bars,
+ *       context menus…) — no per-site redirects needed;</li>
  *   <li>3.9 — every panel button gets a per-frame active flag so the active one's icon draws with the
  *       adaptive contrast color (white/black by primary brightness).</li>
  * </ul>
@@ -45,17 +48,21 @@ public abstract class UIDashboardPanelsMixin
     public UIDashboardPanel panel;
 
     /**
-     * BBS 2.3 added a Direction arg to renderHighlight; the taskbar active-button highlight now calls the
-     * 3-arg form from the panelButtons pre-render lambda. Scope to that lambda (lambda$new$0) so the
-     * deprecated 2-arg delegators in this class are NOT redirected.
+     * 3.8 — the ONE place the rounded selection fill is applied. BBS routes every selection indicator
+     * through this static helper (the 2-arg {@code renderHighlight} / {@code renderHighlightHorizontal}
+     * delegators call the 3-arg form too), so cancelling its body here and drawing the rounded primary
+     * fill replaces the bevel everywhere at once — no per-call-site redirects. Direction is intentionally
+     * ignored: our fill is a uniform rounded pill, not an edge bar.
      */
-    @Redirect(
-        method = "lambda$new$0",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
+    @Inject(
+        method = "renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V",
+        at = @At("HEAD"),
+        cancellable = true
     )
-    private void refreshedui$roundHighlight(Batcher2D batcher, Area area, Direction direction)
+    private static void refreshedui$roundHighlight(Batcher2D batcher, Area area, Direction direction, CallbackInfo ci)
     {
         RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
+        ci.cancel();
     }
 
     /**

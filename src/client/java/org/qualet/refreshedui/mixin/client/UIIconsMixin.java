@@ -1,12 +1,9 @@
 package org.qualet.refreshedui.mixin.client;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcons;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
-import mchorse.bbs_mod.utils.Direction;
-import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -23,9 +20,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * treatment ({@link UIDockLayoutTabsMixin}) onto it:
  * <ul>
  *   <li>the whole-element track background gets rounded ends (matches our other rounded controls);</li>
- *   <li>the selected cell's highlight becomes a single rounded primary fill;</li>
  *   <li>the selected cell's icon is tinted with the adaptive contrast color so it reads on the fill.</li>
  * </ul>
+ *
+ * <p>The selected cell's rounded fill is no longer redirected here — it comes from the global
+ * {@code UIDashboardPanels.renderHighlight} inject (see {@link UIDashboardPanelsMixin}).</p>
  */
 @Mixin(UIIcons.class)
 public abstract class UIIconsMixin
@@ -48,14 +47,5 @@ public abstract class UIIconsMixin
     private int refreshedui$blackenActiveIcon(int color, @Local(ordinal = 0) boolean active)
     {
         return active ? UIContrastColor.onPrimary() : color;
-    }
-
-    @Redirect(
-        method = "renderSkin",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
-    )
-    private void refreshedui$roundedActiveCell(Batcher2D batcher, Area area, Direction direction)
-    {
-        RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 }

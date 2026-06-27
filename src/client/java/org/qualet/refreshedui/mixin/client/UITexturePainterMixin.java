@@ -1,13 +1,10 @@
 package org.qualet.refreshedui.mixin.client;
 
-import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.dashboard.textures.UITexturePainter;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
-import mchorse.bbs_mod.utils.Direction;
-import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -48,18 +45,10 @@ public abstract class UITexturePainterMixin
         RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.interfaceChrome());
     }
 
-    /** Round the active-tool highlight into our primary pill. */
-    @Redirect(
-        method = "renderActiveToolHighlight",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
-    )
-    private void refreshedui$roundedActiveTool(Batcher2D batcher, Area area, Direction direction)
-    {
-        RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
-    }
-
     /**
      * Tint the active tool's icon to the adaptive contrast color so it reads on top of the primary fill.
+     * The rounded fill itself comes from the global {@code UIDashboardPanels.renderHighlight} inject
+     * (see {@link UIDashboardPanelsMixin}).
      * The highlight is an icon-bar pre-render, so flagging the icons here (before the bar's children draw)
      * makes the active {@link UIIcon} render in its activeColor; the rest stay normal.
      */
