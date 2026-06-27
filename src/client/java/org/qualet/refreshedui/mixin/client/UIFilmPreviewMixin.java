@@ -7,13 +7,8 @@ import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
-import mchorse.bbs_mod.ui.utils.Area;
-import mchorse.bbs_mod.utils.Direction;
-import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
-import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
-import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,8 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   <li>3.9 — active buttons draw the adaptive contrast icon (white/black by primary brightness) over
  *       the highlight. The icon glyphs are drawn by the UIIcon children during {@code super.render(...)},
  *       after this HEAD inject.</li>
- *   <li>3.10 — the bar gradient becomes a rounded chromeSurface bar, the 5 active highlights become
- *       rounded fills, and the bar is offset up from the bottom edge.</li>
+ *   <li>3.10 — the bar gradient becomes a rounded chromeSurface bar, and the bar is offset up from the
+ *       bottom edge. The 5 active control highlights become rounded fills via the global
+ *       {@code UIDashboardPanels.renderHighlight} inject (see {@link UIDashboardPanelsMixin}).</li>
  * </ul>
  */
 @Mixin(UIFilmPreview.class)
@@ -100,15 +96,5 @@ public abstract class UIFilmPreviewMixin
 
             ((IRoundedBatcher) batcher).roundedBox(px, py, pw, ph, Math.max(1F, rr), BBSSettings.chromeSurface());
         }
-    }
-
-    /** 3.10: active control highlight uses a rounded primary fill instead of the bevel highlight. BBS 2.3 added a Direction arg. */
-    @Redirect(
-        method = "render",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/dashboard/panels/UIDashboardPanels;renderHighlight(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;)V")
-    )
-    private void refreshedui$roundedHighlight(Batcher2D batcher, Area area, Direction direction)
-    {
-        RoundedAreas.renderRounded(area, batcher, BBSSettings.primaryColor(Colors.A100), UICornerRadii.buttonsAndTrackpads());
     }
 }

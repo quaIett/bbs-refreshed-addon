@@ -1,27 +1,26 @@
 package org.qualet.refreshedui.mixin.client;
 
 import mchorse.bbs_mod.ui.film.clips.UIClip;
-import mchorse.bbs_mod.ui.framework.elements.utils.UILabel;
+import mchorse.bbs_mod.ui.framework.elements.UIElement;
+import mchorse.bbs_mod.ui.utils.UI;
+import mchorse.bbs_mod.ui.utils.UIConstants;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.util.function.Supplier;
-
 /**
- * Clip section headers (3.11): drop the primary-color background and center the label instead.
- * The static {@code label(IKey)} factory builds {@code UI.label(key).background(...)}; redirect that
- * {@code background(Supplier)} call to apply {@code labelAnchor(0.5, 0)} and skip the fill.
+ * Clip panel title row: the title textbox sits flush against the {@code enabled} toggle (default row
+ * gap is {@link UIConstants#MARGIN} = 3px), so its rounded right edge visually overlaps the toggle.
+ * Widen the gap by 7px. In a {@link mchorse.bbs_mod.ui.utils.resizers.layout.RowResizer} the trailing
+ * fixed-width toggle stays flush-right regardless of margin, so this only trims the flexible title's
+ * right side by 7px without moving the toggle.
  */
 @Mixin(UIClip.class)
 public abstract class UIClipMixin
 {
-    @Redirect(
-        method = "label",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/UILabel;background(Ljava/util/function/Supplier;)Lmchorse/bbs_mod/ui/framework/elements/utils/UILabel;")
-    )
-    private static UILabel refreshedui$centerHeaderNoBackground(UILabel label, Supplier<Integer> color)
+    @Redirect(method = "registerPanels", at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/UI;row([Lmchorse/bbs_mod/ui/framework/elements/UIElement;)Lmchorse/bbs_mod/ui/framework/elements/UIElement;"))
+    private UIElement refreshedui$titleRowGap(UIElement[] elements)
     {
-        return label.labelAnchor(0.5F, 0F);
+        return UI.row(UIConstants.MARGIN + 7, elements);
     }
 }
