@@ -15,6 +15,7 @@
         "TextboxMixin",
         "UIButtonMixin",
         "UICirculateMixin",
+        "UIClipMixin",
         "UIClipRendererMixin",
         "UIColorMixin",
         "UIColorPickerMixin",
