@@ -36,18 +36,21 @@ public abstract class BBSSettingsMixin
         ValueInt radius = new ValueInt("ui_corner_radius", 4, 0, 16);
         ValueBoolean tooltips = new ValueBoolean("show_tooltips", true);
         ValueBoolean animations = new ValueBoolean("animations", true);
+        ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
 
         ValueGroup group = new ValueGroup("refreshed");
         group.icon = Icons.GEAR;
         group.add(radius);
         group.add(tooltips);
         group.add(animations);
+        group.add(alternativeTrackpads);
 
         builder.getCategory().add(group);
 
         RefreshedUiAddon.uiCornerRadius = radius;
         RefreshedUiAddon.showTooltips = tooltips;
         RefreshedUiAddon.animations = animations;
+        RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;
         RefreshedUiAddon.refreshedGroup = group;
     }
 }

@@ -11,6 +11,7 @@ import mchorse.bbs_mod.ui.utils.UI;
 import mchorse.bbs_mod.ui.utils.UIConstants;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.RefreshedUiAddon;
 import org.qualet.refreshedui.client.ui.ITransformModes;
 import org.qualet.refreshedui.client.ui.UITransformModes;
 import org.spongepowered.asm.mixin.Mixin;
@@ -64,6 +65,11 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
     @Inject(method = "<init>", at = @At("TAIL"))
     private void refreshedui$rebuildLayout(CallbackInfo ci)
     {
+        if (!refreshedui$alternativeEnabled())
+        {
+            return;
+        }
+
         UITransformModes selector = new UITransformModes((s) -> this.refreshedui$apply());
 
         selector.addIcon(Icons.ALL_DIRECTIONS, UIKeys.TRANSFORMS_TRANSLATE, false);
@@ -99,7 +105,20 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
     @Inject(method = "toggleUniformScale", at = @At("TAIL"))
     private void refreshedui$afterUniformToggle(CallbackInfo ci)
     {
+        if (this.refreshedui$selector == null)
+        {
+            return;
+        }
+
         this.refreshedui$apply();
+    }
+
+    /** The "Alternative trackpad style" toggle (refreshed settings group); on by default / when unregistered. */
+    @Unique
+    private static boolean refreshedui$alternativeEnabled()
+    {
+        return RefreshedUiAddon.alternativeTrackpads == null
+            || RefreshedUiAddon.alternativeTrackpads.get();
     }
 
     /** {@link ITransformModes} — gizmo hotkeys (G/S/R) make the selected tab follow. */
