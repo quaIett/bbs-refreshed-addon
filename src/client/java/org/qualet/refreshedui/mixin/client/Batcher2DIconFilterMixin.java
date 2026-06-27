@@ -6,12 +6,15 @@ import mchorse.bbs_mod.graphics.texture.Texture;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
+import mchorse.bbs_mod.utils.colors.Colors;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL30;
+import org.qualet.refreshedui.client.anim.OverlayReveal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.HashSet;
@@ -54,6 +57,28 @@ public class Batcher2DIconFilterMixin
     private void rui$mipmapIconAreaAtlas(Icon icon, int color, float x, float y, float w, float h, CallbackInfo ci)
     {
         rui$mipmap(icon);
+    }
+
+    /**
+     * Fade icons drawn inside an animating overlay panel. Icons go through {@code texturedBox} and do not
+     * honour the panel reveal's shader-colour fade the way boxes/text do, so we fade them here by scaling
+     * the draw colour's alpha by the panel's current visibility ({@link OverlayReveal#iconAlpha()}; 1 = no
+     * fade, the normal case). Covers both {@code icon} and {@code iconArea}.
+     */
+    @ModifyVariable(method = "icon(Lmchorse/bbs_mod/ui/utils/icons/Icon;IFFFF)V", at = @At("HEAD"), index = 2, argsOnly = true)
+    private int rui$fadeIcon(int color)
+    {
+        float alpha = OverlayReveal.iconAlpha();
+
+        return alpha >= 1F ? color : Colors.mulA(color, alpha);
+    }
+
+    @ModifyVariable(method = "iconArea(Lmchorse/bbs_mod/ui/utils/icons/Icon;IFFFF)V", at = @At("HEAD"), index = 2, argsOnly = true)
+    private int rui$fadeIconArea(int color)
+    {
+        float alpha = OverlayReveal.iconAlpha();
+
+        return alpha >= 1F ? color : Colors.mulA(color, alpha);
     }
 
     private static void rui$mipmap(Icon icon)

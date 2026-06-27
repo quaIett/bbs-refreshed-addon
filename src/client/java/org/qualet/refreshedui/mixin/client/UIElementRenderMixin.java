@@ -4,6 +4,7 @@ import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import org.qualet.refreshedui.client.anim.OverlayReveal;
 import org.qualet.refreshedui.client.anim.PanelTransitions;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -42,7 +43,17 @@ public abstract class UIElementRenderMixin
     @Inject(method = "render", at = @At("HEAD"))
     private void refreshedui$enterAppearRoot(UIContext context, CallbackInfo ci)
     {
-        PanelTransitions.enter((UIElement) (Object) this);
+        UIElement self = (UIElement) (Object) this;
+
+        PanelTransitions.enter(self);
+
+        /* When the overlay container is about to render, first detach any overlay whose close animation has
+         * finished — here, at its render head, the removal happens before its children loop, so it cannot
+         * corrupt that iteration. Inert (a ref compare + empty-map check) when nothing is closing. */
+        if (context.menu != null && context.menu.overlay == self)
+        {
+            OverlayReveal.finishClosed(self);
+        }
     }
 
     @Inject(method = "render", at = @At("RETURN"))

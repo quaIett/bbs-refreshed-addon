@@ -9,8 +9,6 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.colors.Colors;
 import net.minecraft.client.util.math.MatrixStack;
-import org.qualet.refreshedui.client.anim.Animator;
-import org.qualet.refreshedui.client.anim.Easings;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -44,16 +42,9 @@ public abstract class UIOverlayPanelMixin
     {
         this.refreshedui$revealing = false;
 
-        Animator anim = OverlayReveal.animator((UIElement) (Object) this);
+        float vis = OverlayReveal.visibility((UIElement) (Object) this);
 
-        if (anim == null)
-        {
-            return;
-        }
-
-        float p = anim.progress(0L, OverlayReveal.DURATION_MS, Easings.OUT_CUBIC);
-
-        if (p >= 1F)
+        if (vis >= 1F)
         {
             return;
         }
@@ -61,8 +52,9 @@ public abstract class UIOverlayPanelMixin
         MatrixStack matrices = context.batcher.getContext().getMatrices();
 
         matrices.push();
-        matrices.translate(0F, (1F - p) * OverlayReveal.SLIDE_PX, 0F);
-        RenderSystem.setShaderColor(1F, 1F, 1F, p);
+        matrices.translate(0F, (1F - vis) * OverlayReveal.SLIDE_PX, 0F);
+        RenderSystem.setShaderColor(1F, 1F, 1F, vis);
+        OverlayReveal.beginIconFade(vis);
 
         this.refreshedui$revealing = true;
     }
@@ -75,6 +67,7 @@ public abstract class UIOverlayPanelMixin
             return;
         }
 
+        OverlayReveal.endIconFade();
         RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
         context.batcher.getContext().getMatrices().pop();
 
