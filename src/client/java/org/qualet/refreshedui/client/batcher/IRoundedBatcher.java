@@ -23,6 +23,15 @@ public interface IRoundedBatcher
     /** Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap. */
     void roundedBoxSides(float x, float y, float w, float h, float radius, int color, boolean roundLeft, boolean roundRight);
 
+    /**
+     * Like {@link #roundedBox} but each of the four corners is rounded only when its flag is set; unset
+     * corners stay square. Lets a vertically-stacked group of selected rows merge into one rounded block
+     * (top row rounds its top corners, bottom row its bottom corners, middle rows none) in a single batch —
+     * unlike an overdraw trick this is correct for translucent fills. (selection grouping, 2026-06-27)
+     */
+    void roundedBoxCorners(float x, float y, float w, float h, float radius, int color,
+        boolean roundTopLeft, boolean roundTopRight, boolean roundBottomRight, boolean roundBottomLeft);
+
     /** Filled circle (single color) sampling a procedural circular SDF mask. {@code segments} is ignored. */
     void filledCircle(float cx, float cy, float radius, int color, int segments);
 

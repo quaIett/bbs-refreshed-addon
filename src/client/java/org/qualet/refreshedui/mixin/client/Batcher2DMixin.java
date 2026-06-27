@@ -247,6 +247,50 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
     }
 
+    /* 9-slice with per-CORNER rounding. Each corner cell samples the rounded mask when its flag is set,
+     * else a solid (UV=1) quad -> square corner. Edges + center are always solid. Used to merge a stack of
+     * selected rows into one block; correct for translucent fills (no double-alpha overdraw). */
+    @Unique
+    private static void emitRoundedSliceMaskCorners(BufferBuilder b, Matrix4f m,
+        float x, float y, float w, float h, float r, int color,
+        boolean tl, boolean tr, boolean br, boolean bl)
+    {
+        float x0 = x;
+        float y0 = y;
+        float x1 = x + w;
+        float y1 = y + h;
+        float xa = x0 + r;
+        float xb = x1 - r;
+        float ya = y0 + r;
+        float yb = y1 - r;
+        boolean hasMidW = xb > xa;
+        boolean hasMidH = yb > ya;
+
+        if (tl) emitMaskQuad(b, m, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color);
+        else    emitMaskQuad(b, m, x0, y0, xa, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        if (tr) emitMaskQuad(b, m, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color);
+        else    emitMaskQuad(b, m, xb, y0, x1, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        if (br) emitMaskQuad(b, m, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color);
+        else    emitMaskQuad(b, m, xb, yb, x1, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        if (bl) emitMaskQuad(b, m, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color);
+        else    emitMaskQuad(b, m, x0, yb, xa, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+
+        if (hasMidW)
+        {
+            emitMaskQuad(b, m, xa, y0, xb, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+            emitMaskQuad(b, m, xa, yb, xb, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        }
+        if (hasMidH)
+        {
+            emitMaskQuad(b, m, x0, ya, xa, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+            emitMaskQuad(b, m, xb, ya, x1, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        }
+        if (hasMidW && hasMidH)
+        {
+            emitMaskQuad(b, m, xa, ya, xb, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color);
+        }
+    }
+
     /**
      * Filled rounded rectangle (single flat color). Radius is clamped to half the shorter side; if
      * the result is below a usable minimum it falls back to a plain {@link #box}.
@@ -365,6 +409,51 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMaskSides(builder, matrix4f, x, y, w, h, r, color, roundLeft, roundRight);
+
+        BufferRenderer.drawWithGlobalProgram(builder.end());
+
+        this.context.draw();
+    }
+
+    /**
+     * Like {@link #roundedBox} but rounds only the flagged corners (others stay square). Single batch,
+     * correct for translucent fills — used to merge a vertical run of selected rows into one block.
+     */
+    @Override
+    public void roundedBoxCorners(float x, float y, float w, float h, float radius, int color,
+        boolean roundTopLeft, boolean roundTopRight, boolean roundBottomRight, boolean roundBottomLeft)
+    {
+        if (w <= 0F || h <= 0F)
+        {
+            return;
+        }
+
+        if (!roundTopLeft && !roundTopRight && !roundBottomRight && !roundBottomLeft)
+        {
+            this.box(x, y, x + w, y + h, color);
+
+            return;
+        }
+
+        float r = clampRoundedRectRadius(w, h, radius);
+
+        if (r < ROUNDED_RECT_MIN_RADIUS)
+        {
+            this.box(x, y, x + w, y + h, color);
+
+            return;
+        }
+
+        Texture mask = this.getRoundedRectMask();
+        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        BufferBuilder builder = Tessellator.getInstance().getBuffer();
+
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderTexture(0, mask.id);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+
+        emitRoundedSliceMaskCorners(builder, matrix4f, x, y, w, h, r, color, roundTopLeft, roundTopRight, roundBottomRight, roundBottomLeft);
 
         BufferRenderer.drawWithGlobalProgram(builder.end());
 
