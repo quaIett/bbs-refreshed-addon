@@ -25,7 +25,9 @@
 		"minecraft": "${mc_pin}",
 		"java": ">=17",
 		"fabric-api": "*",
-		"bbs": "*",
+		"bbs": "*"
+	},
+	"recommends": {
 		"caxton": "*"
 	}
 }

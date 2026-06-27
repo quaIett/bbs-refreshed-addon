@@ -4,6 +4,7 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import org.objectweb.asm.Opcodes;
+import org.qualet.refreshedui.client.font.Fonts;
 import org.qualet.refreshedui.client.font.RefreshedFont;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,8 +35,16 @@ public abstract class Batcher2DFontMixin
     )
     private static TextRenderer refreshedui$useCustomFont(MinecraftClient instance)
     {
-        TextRenderer custom = RefreshedFont.get();
+        if (Fonts.customFontEnabled())
+        {
+            TextRenderer custom = RefreshedFont.get();
 
-        return custom != null ? custom : instance.textRenderer;
+            if (custom != null)
+            {
+                return custom;
+            }
+        }
+
+        return instance.textRenderer;
     }
 }
