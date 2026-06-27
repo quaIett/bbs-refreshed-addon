@@ -77,13 +77,41 @@ public final class RoundedAreas
      */
     public static void renderSelectionFrame(Batcher2D batcher, float x, float y, float w, float h, int baseColor, float radius)
     {
+        renderSelectionFrameVertical(batcher, x, y, w, h, baseColor, radius, true, true, false);
+    }
+
+    /**
+     * Selection frame variant for a VERTICAL run of adjacent entries: when {@code roundTop} /
+     * {@code roundBottom} is false, that edge is squared AND the muted fill is extended over the (now
+     * internal) border so adjacent entries merge into one block — the bright stroke survives only on the
+     * group's outer perimeter + the continuous side rails, never as a line between two merged rows.
+     *
+     * <p>{@code bright} lifts the interior to the FULL (un-darkened) colour — used as the hover state, so a
+     * hovered entry reads as its plain colour instead of the muted resting fill.</p>
+     */
+    public static void renderSelectionFrameVertical(Batcher2D batcher, float x, float y, float w, float h, int baseColor, float radius, boolean roundTop, boolean roundBottom, boolean bright)
+    {
         IRoundedBatcher rounded = (IRoundedBatcher) batcher;
         int border = Colors.A100 | (baseColor & 0xFFFFFF);
-        int fill = Colors.mulRGB(border, SELECTION_FILL_DARKEN);
+        int fill = bright ? border : Colors.mulRGB(border, SELECTION_FILL_DARKEN);
         float inset = SELECTION_BORDER_INSET;
 
-        rounded.roundedBox(x, y, w, h, radius, border);
-        rounded.roundedBox(x + inset, y + inset, w - inset * 2F, h - inset * 2F, Math.max(0.5F, radius - inset), fill);
+        rounded.roundedBoxCorners(x, y, w, h, radius, border, roundTop, roundTop, roundBottom, roundBottom);
+
+        float ty = roundTop ? inset : 0F;
+        float by = roundBottom ? inset : 0F;
+        rounded.roundedBoxCorners(x + inset, y + ty, w - inset * 2F, h - ty - by, Math.max(0.5F, radius - inset),
+            fill, roundTop, roundTop, roundBottom, roundBottom);
+    }
+
+    /**
+     * Flat rounded fill for a VERTICAL run member: rounds only the group's outer corners ({@code roundTop}
+     * for the first row, {@code roundBottom} for the last), squaring merged edges so a multi-selection draws
+     * as one block instead of a stack of separate pills. Translucency-safe (per-corner mask, no overdraw).
+     */
+    public static void roundedBoxVertical(Batcher2D batcher, float x, float y, float w, float h, float radius, int color, boolean roundTop, boolean roundBottom)
+    {
+        ((IRoundedBatcher) batcher).roundedBoxCorners(x, y, w, h, radius, color, roundTop, roundTop, roundBottom, roundBottom);
     }
 
     /** Selection-frame stroke thickness, px. */
