@@ -24,7 +24,14 @@ public class RefreshedUiAddon implements BBSAddonMod
     /** Show hover tooltips. Default true (= original behavior). */
     public static ValueBoolean showTooltips;
 
-    /** Nested "refreshed" group under personalization holding the two settings above. */
+    /** Master switch for all animation-core effects. Default true. Read via {@code client.anim.Animations}. */
+    public static ValueBoolean animations;
+
+    /** Render bounded-range trackpads as the alternative slider view (rail + knob + entry box).
+     *  Default true. Read via {@code client.ui.UISliderTrackpadAdapter}. */
+    public static ValueBoolean alternativeTrackpads;
+
+    /** Nested "refreshed" group under personalization holding the settings above. */
     public static ValueGroup refreshedGroup;
 
     /**

@@ -2,10 +2,10 @@
     "providers": [
         {
             "type": "caxton",
-            "regular": { "file": "refreshedui:inter_regular.otf", "shadow_offset": 0.5 },
-            "bold": { "file": "refreshedui:inter_bold.otf", "shadow_offset": 0.5 },
-            "italic": { "file": "refreshedui:inter_italic.otf", "shadow_offset": 0.5 },
-            "bold_italic": { "file": "refreshedui:inter_bold_italic.otf", "shadow_offset": 0.5 }
+            "regular": { "file": "refreshedui:google_sans_regular.ttf", "shadow_offset": 0.5, "scale_factor": 1.1475 },
+            "bold": { "file": "refreshedui:google_sans_bold.ttf", "shadow_offset": 0.5, "scale_factor": 1.1475 },
+            "italic": { "file": "refreshedui:google_sans_regular.ttf", "shadow_offset": 0.5, "scale_factor": 1.1475 },
+            "bold_italic": { "file": "refreshedui:google_sans_bold.ttf", "shadow_offset": 0.5, "scale_factor": 1.1475 }
         },
         { "type": "reference", "id": "minecraft:include/space" },
         { "type": "reference", "id": "minecraft:include/default" },
