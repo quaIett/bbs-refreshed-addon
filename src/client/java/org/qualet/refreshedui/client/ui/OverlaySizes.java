@@ -46,7 +46,7 @@ public final class OverlaySizes
         SIZES.put(UIResizeTextureOverlayPanel.class, new int[] {260, 120});
         SIZES.put(UIListOverlayPanel.class, new int[] {320, 280});
         SIZES.put(UILabelOverlayPanel.class, new int[] {320, 280});
-        SIZES.put(UILabelListOverlayPanel.class, new int[] {320, 280});
+        SIZES.put(UILabelListOverlayPanel.class, new int[] {680, 280});
         SIZES.put(UIStringOverlayPanel.class, new int[] {320, 280});
         SIZES.put(UISoundOverlayPanel.class, new int[] {420, 320});
         SIZES.put(UIFilmPlayerSettingsOverlayPanel.class, new int[] {280, 188});
