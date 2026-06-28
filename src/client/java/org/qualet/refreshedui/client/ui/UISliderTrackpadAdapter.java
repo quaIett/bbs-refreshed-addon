@@ -46,14 +46,29 @@ public class UISliderTrackpadAdapter extends UITrackpad
     /** Knob fill at rest; brightens to white and grows by 1px on hover/drag. */
     private static final int KNOB_REST = 0xffe6e6ea;
     private static final int KNOB_SEGMENTS = 24;
+    /** Alt-held drag sensitivity — finer scrubbing (mirrors the trackpad's weak modifier = normal/5). */
+    private static final double FINE_DRAG_FACTOR = 0.2D;
 
     /** Left strip that hosts the rail + knob (the element minus the number box). */
     private final Area railArea = new Area();
     private final Area handleArea = new Area();
 
+    /**
+     * RMB reset target — the value last loaded into the field from the data model. Mirrors the
+     * trackpad's "store a value, restore it on right click" idea ({@code lastValue} +
+     * {@code allowCanceling}): we capture whatever the owning panel sets via {@code setValue}
+     * (panel open / selection change) and restore it on a right click.
+     */
+    private double defaultValue;
+    private boolean hasDefault;
+    /** Guards baseline capture so user-driven edits (drag/scroll/keys/notify) don't overwrite it. */
+    private boolean inNotify;
+
     private boolean sliderDragging;
     private double startValue;
-    private int dragOffsetX;
+    /** Incremental drag accumulator (double, so Alt fine-drag and integer flooring don't lose sub-steps). */
+    private double dragValue;
+    private int lastMouseX;
 
     public UISliderTrackpadAdapter()
     {
@@ -82,6 +97,44 @@ public class UISliderTrackpadAdapter extends UITrackpad
     public boolean isDragging()
     {
         return this.sliderDragging || super.isDragging();
+    }
+
+    /* Baseline capture for the RMB reset. A plain setValue with no notify flag set = the panel
+     * loading data into the field (open / selection change); that value becomes the reset target.
+     * setValueAndNotify and the drag path raise inNotify so user edits never move the target. */
+
+    @Override
+    public void setValue(double value)
+    {
+        super.setValue(value);
+
+        if (!this.inNotify && this.hasSliderRange())
+        {
+            this.defaultValue = this.value;
+            this.hasDefault = true;
+        }
+    }
+
+    @Override
+    public void setValueAndNotify(double value)
+    {
+        boolean previous = this.inNotify;
+
+        this.inNotify = true;
+        super.setValueAndNotify(value);
+        this.inNotify = previous;
+    }
+
+    /** Restore the value last loaded from data (right-click reset), notifying the data model. */
+    private void resetToDefault(UIContext context)
+    {
+        if (this.textbox.isFocused())
+        {
+            context.unfocus();
+        }
+
+        this.setValueAndNotify(this.defaultValue);
+        this.updateHandleArea();
     }
 
     /* Slider geometry — all measured against railArea (the left strip), not the full element. */
@@ -137,13 +190,13 @@ public class UISliderTrackpadAdapter extends UITrackpad
         this.handleArea.set(this.getHandleCenter() - r, this.area.y, r * 2, this.area.h);
     }
 
+    /** Absolute value under the cursor — used for the jump-to-click when grabbing the bare rail. */
     private double getValueFromMouse(int mouseX)
     {
-        int centerX = mouseX - this.dragOffsetX;
         int pad = this.getKnobRadius();
         int left = this.railArea.x + pad;
         int width = Math.max(this.railArea.w - pad * 2, 1);
-        double factor = MathUtils.clamp((centerX - left) / (double) width, 0D, 1D);
+        double factor = MathUtils.clamp((mouseX - left) / (double) width, 0D, 1D);
 
         return this.min + factor * (this.max - this.min);
     }
@@ -152,6 +205,10 @@ public class UISliderTrackpadAdapter extends UITrackpad
 
     private void applySliderValue(double value)
     {
+        boolean previous = this.inNotify;
+
+        this.inNotify = true;
+
         if (this.delayedInput)
         {
             this.setValue(value);
@@ -160,20 +217,44 @@ public class UISliderTrackpadAdapter extends UITrackpad
         {
             this.setValueAndNotify(value);
         }
+
+        this.inNotify = previous;
     }
 
+    /**
+     * Scrub the value by the mouse delta since the last update. Incremental (not absolute) so that
+     * holding Alt can scale the per-pixel sensitivity down for fine adjustment — the rest-state
+     * factor is 1:1 with pixels, so a normal drag still tracks the cursor. The accumulator
+     * {@link #dragValue} stays a double so Alt steps and integer flooring don't lose sub-pixel motion.
+     */
     private void updateDragging(int mouseX)
     {
-        if (this.hasSliderRange())
+        if (!this.hasSliderRange())
         {
-            this.applySliderValue(this.getValueFromMouse(mouseX));
+            return;
         }
+
+        int dx = mouseX - this.lastMouseX;
+
+        this.lastMouseX = mouseX;
+
+        if (dx == 0)
+        {
+            return;
+        }
+
+        int pad = this.getKnobRadius();
+        double width = Math.max(this.railArea.w - pad * 2, 1);
+        double valuePerPixel = (this.max - this.min) / width;
+        double sensitivity = Window.isAltPressed() ? FINE_DRAG_FACTOR : 1D;
+
+        this.dragValue = MathUtils.clamp(this.dragValue + dx * valuePerPixel * sensitivity, this.min, this.max);
+        this.applySliderValue(this.dragValue);
     }
 
     private void stopDragging()
     {
         this.sliderDragging = false;
-        this.dragOffsetX = 0;
     }
 
     private void cancelDragging()
@@ -199,9 +280,20 @@ public class UISliderTrackpadAdapter extends UITrackpad
     {
         this.sliderDragging = true;
         this.startValue = this.value;
-        this.dragOffsetX = this.handleArea.isInside(context) ? context.mouseX - this.handleArea.mx() : 0;
+        this.lastMouseX = context.mouseX;
 
-        this.updateDragging(context.mouseX);
+        if (this.handleArea.isInside(context))
+        {
+            /* Grabbed the knob — keep the current value and scrub relatively from here. */
+            this.dragValue = this.value;
+        }
+        else
+        {
+            /* Clicked the bare rail — jump the knob to the cursor, then scrub from there. */
+            this.dragValue = MathUtils.clamp(this.getValueFromMouse(context.mouseX), this.min, this.max);
+            this.applySliderValue(this.dragValue);
+        }
+
         this.updateHandleArea();
     }
 
@@ -230,6 +322,14 @@ public class UISliderTrackpadAdapter extends UITrackpad
         if (this.allowCanceling && context.mouseButton == 1 && this.sliderDragging)
         {
             this.cancelDragging();
+
+            return true;
+        }
+
+        /* Right click while not dragging — reset to the value loaded from data (default). */
+        if (context.mouseButton == 1 && this.hasDefault && this.area.isInside(context))
+        {
+            this.resetToDefault(context);
 
             return true;
         }
