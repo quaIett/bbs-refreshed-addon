@@ -12,6 +12,7 @@
         "ContextActionMixin",
         "DarkTooltipStyleMixin",
         "LightTooltipStyleMixin",
+        "ModelIKDebugMixin",
         "ScrollMixin",
         "TextboxMixin",
         "UIActionListMixin",

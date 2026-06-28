@@ -41,6 +41,10 @@ public class RefreshedUiStrings
         set(l10n, "alternative_trackpads-comment",
             "When enabled, the transform editor uses the alternative layout: a mode selector (translate / scale / rotate) on top with just the active mode's X/Y/Z trackpads below, instead of all groups at once. Disable to restore the classic always-visible rows. Reopen the editor to apply.",
             "Если включено, редактор трансформации использует альтернативный вид: сверху селектор режима (перемещение / масштаб / поворот), а ниже только X/Y/Z трекпады активного режима, вместо всех групп сразу. Выключите, чтобы вернуть классические всегда видимые ряды. Переоткройте редактор, чтобы применить.", ru);
+        set(l10n, "ik_controller_overlay", "IK controller-only overlay", "Оверлей IK только по контроллерам", ru);
+        set(l10n, "ik_controller_overlay-comment",
+            "When enabled, the IK debug overlay shows only markers on target bones named controller_* (the reworked minimal overlay). Disable to restore BBS's full chain overlay (skeleton, effector, pole).",
+            "Если включено, отладочный оверлей IK показывает только маркеры на целевых костях с именем controller_* (переработанный минимальный оверлей). Выключите, чтобы вернуть полный оверлей цепочки BBS (скелет, эффектор, полюс).", ru);
     }
 
     private static void set(L10n l10n, String suffix, String en, String ru, boolean useRu)
