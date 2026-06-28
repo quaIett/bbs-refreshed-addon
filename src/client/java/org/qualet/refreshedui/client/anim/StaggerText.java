@@ -16,9 +16,9 @@ import mchorse.bbs_mod.utils.colors.Colors;
 public final class StaggerText
 {
     /** Per-glyph reveal duration. */
-    public static final long LETTER_DURATION_MS = 300L;
+    public static final long LETTER_DURATION_MS = 150L;
     /** Delay between consecutive glyphs starting. */
-    public static final long LETTER_STAGGER_MS = 30L;
+    public static final long LETTER_STAGGER_MS = 15L;
     /** How far below its baseline a glyph begins, in pixels. */
     public static final float SLIDE_PX = 6F;
 
