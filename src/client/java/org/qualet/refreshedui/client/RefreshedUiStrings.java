@@ -25,10 +25,6 @@ public class RefreshedUiStrings
         boolean ru = "ru_ru".equals(BBSSettings.language.get());
 
         set(l10n, "title", "refreshed", "refreshed", ru);
-        set(l10n, "ui_corner_radius", "Corner rounding intensity", "Интенсивность скругления", ru);
-        set(l10n, "ui_corner_radius-comment",
-            "Corner radius of GUI elements (buttons, panels, etc.) in pixels. 0 disables rounding.",
-            "Радиус скругления углов элементов интерфейса (кнопок, панелей и т.д.) в пикселях. 0 — отключить скругление.", ru);
         set(l10n, "show_tooltips", "Show tooltips", "Показывать подсказки", ru);
         set(l10n, "show_tooltips-comment",
             "When enabled, hint tooltips appear when hovering the mouse over interface elements. When disabled, they stay hidden.",

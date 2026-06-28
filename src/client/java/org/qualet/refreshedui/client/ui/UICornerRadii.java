@@ -1,28 +1,24 @@
 package org.qualet.refreshedui.client.ui;
 
-import org.qualet.refreshedui.RefreshedUiAddon;
-
 /**
- * Rounded-rectangle corner radii sourced from the addon settings (appearance).
+ * Rounded-rectangle corner radii for the UI.
  *
  * <p>A single place to resolve the UI corner radius so call sites read intent
- * ({@code interfaceChrome()} vs {@code buttonsAndTrackpads()}) instead of poking the setting
+ * ({@code interfaceChrome()} vs {@code buttonsAndTrackpads()}) instead of poking the constant
  * directly. Both currently return the same value, but keeping them separate lets us tune
  * categories independently later.</p>
  *
- * <p>Ported from {@code mchorse.bbs_mod.ui.utils.UICornerRadii}; reads
- * {@link RefreshedUiAddon#uiCornerRadius} (addon-owned) instead of {@code BBSSettings}.</p>
+ * <p>The radius is fixed at {@link #RADIUS}px — the corner-rounding intensity setting was removed,
+ * so rounding is no longer user-configurable.</p>
  */
 public final class UICornerRadii
 {
-    /** Fallback used before {@link RefreshedUiAddon#uiCornerRadius} is registered. Matches its default. */
-    private static final int DEFAULT_RADIUS = 4;
+    /** Fixed UI corner radius in px (rounding intensity is no longer configurable). */
+    private static final int RADIUS = 5;
 
     private static int radius()
     {
-        return RefreshedUiAddon.uiCornerRadius == null
-            ? DEFAULT_RADIUS
-            : RefreshedUiAddon.uiCornerRadius.get();
+        return RADIUS;
     }
 
     /** Buttons and trackpads. */

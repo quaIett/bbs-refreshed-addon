@@ -4,7 +4,6 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.settings.SettingsBuilder;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
-import mchorse.bbs_mod.settings.values.numeric.ValueInt;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import org.qualet.refreshedui.RefreshedUiAddon;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,15 +32,13 @@ public abstract class BBSSettingsMixin
     )
     private static void refreshedui$registerAppearanceSettings(SettingsBuilder builder, CallbackInfo ci)
     {
-        ValueInt radius = new ValueInt("ui_corner_radius", 4, 0, 16);
-        ValueBoolean tooltips = new ValueBoolean("show_tooltips", true);
+        ValueBoolean tooltips = new ValueBoolean("show_tooltips", false);
         ValueBoolean animations = new ValueBoolean("animations", true);
         ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
         ValueBoolean ikControllerOverlay = new ValueBoolean("ik_controller_overlay", true);
 
         ValueGroup group = new ValueGroup("refreshed");
         group.icon = Icons.GEAR;
-        group.add(radius);
         group.add(tooltips);
         group.add(animations);
         group.add(alternativeTrackpads);
@@ -49,7 +46,6 @@ public abstract class BBSSettingsMixin
 
         builder.getCategory().add(group);
 
-        RefreshedUiAddon.uiCornerRadius = radius;
         RefreshedUiAddon.showTooltips = tooltips;
         RefreshedUiAddon.animations = animations;
         RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;

@@ -5,23 +5,19 @@ import mchorse.bbs_mod.events.Subscribe;
 import mchorse.bbs_mod.events.register.RegisterSourcePacksEvent;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
-import mchorse.bbs_mod.settings.values.numeric.ValueInt;
 import org.qualet.refreshedui.resources.RefreshedUiAssetsSourcePack;
 
 /**
  * BBS addon entry point (server/common side) and holder for the addon's settings.
  *
- * <p>The two appearance settings live in BBS's own <b>personalization</b> category (matching the
+ * <p>The appearance settings live in BBS's own <b>personalization</b> category (matching the
  * original bbs-fs layout) — they are registered there by {@code BBSSettingsMixin}, which injects into
- * {@code BBSSettings.register} and stores the returned values here. Read by
- * {@code org.qualet.refreshedui.client.ui.UICornerRadii} and {@code UITooltipMixin}.</p>
+ * {@code BBSSettings.register} and stores the returned values here. Read by {@code UITooltipMixin}
+ * and others. The corner radius is fixed (see {@code client.ui.UICornerRadii}), not a setting.</p>
  */
 public class RefreshedUiAddon implements BBSAddonMod
 {
-    /** UI corner radius in px. 0 = square (rounding off), default 4, max 16. */
-    public static ValueInt uiCornerRadius;
-
-    /** Show hover tooltips. Default true (= original behavior). */
+    /** Show hover tooltips. Default false (hidden unless the user opts in). */
     public static ValueBoolean showTooltips;
 
     /** Master switch for all animation-core effects. Default true. Read via {@code client.anim.Animations}. */
