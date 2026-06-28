@@ -36,18 +36,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Reworks the IK debug overlay: instead of drawing the whole solved chain (wires,
- * joints, effector, pole) plus the goal, it draws ONLY the goal marker for chains
- * whose target bone is named {@code controller_*}. The skeleton and every other
- * marker are suppressed.
+ * joints, effector) it draws ONLY the marker spheres — a green goal on each chain
+ * whose {@code target} bone name contains {@code controller}, and an orange marker
+ * on each chain whose {@code poleTarget} bone name contains {@code pole}. The name
+ * match is relaxed (case- and separator-insensitive, see {@link #refreshedui$nameContains}).
+ * The skeleton and wires are suppressed.
  *
- * <p>The marker keeps the stock goal look — a green {@link Draw#sphere} sized to
- * the chain's bone span — and stays pickable, so clicking it still selects the
- * controller bone exactly as before.
+ * <p>Each marker keeps the stock look — a {@link Draw#sphere} sized to the chain's
+ * bone span — and stays pickable, so clicking it still selects the underlying bone
+ * exactly as before.
  *
  * <p>Gated by the "refreshed &gt; IK controller-only overlay" setting
  * ({@link RefreshedUiAddon#ikControllerOverlay}, default on): when off, the inject
@@ -64,16 +67,59 @@ import java.util.Set;
 public abstract class ModelIKDebugMixin
 {
     @Unique
-    private static final String refreshedui$CONTROLLER_PREFIX = "controller_";
+    private static final String refreshedui$CONTROLLER_TOKEN = "controller";
+
+    /** Pole-target name tokens: matches the common {@code pole} spelling and the rig's {@code pool} convention. */
+    @Unique
+    private static final String[] refreshedui$POLE_TOKENS = {"pool", "pole"};
 
     @Unique
     private static final float[] refreshedui$GOAL = {0.22F, 0.84F, 0.55F};
+
+    @Unique
+    private static final float[] refreshedui$POLE = {1.00F, 0.55F, 0.15F};
 
     /** Whether the reworked controller-only overlay is active. Default on until the setting registers. */
     @Unique
     private static boolean refreshedui$controllerOnly()
     {
         return RefreshedUiAddon.ikControllerOverlay == null || RefreshedUiAddon.ikControllerOverlay.get();
+    }
+
+    /**
+     * Relaxed bone-name test: case-insensitive and separator-agnostic. The name is
+     * lower-cased and stripped of every non-alphanumeric character (so {@code _},
+     * {@code -}, spaces, dots all drop out), then matched for {@code token} anywhere
+     * inside it. Thus for {@code controller}: {@code controller_L}, {@code Controller},
+     * {@code leftControllerHand} and {@code ik.controller 2} all qualify; likewise
+     * {@code pole_R}, {@code Pole}, {@code kneePoleTarget} match {@code pole}.
+     */
+    @Unique
+    private static boolean refreshedui$nameContains(String name, String token)
+    {
+        if (name == null || name.isEmpty())
+        {
+            return false;
+        }
+
+        String normalized = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+
+        return normalized.contains(token);
+    }
+
+    /** True if {@code name} contains any pole-target token ({@code pool}/{@code pole}), via the relaxed match. */
+    @Unique
+    private static boolean refreshedui$isPole(String name)
+    {
+        for (String token : refreshedui$POLE_TOKENS)
+        {
+            if (refreshedui$nameContains(name, token))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Inject(
@@ -124,7 +170,7 @@ public abstract class ModelIKDebugMixin
 
             stack.push();
             stack.translate(marker.position.x, marker.position.y, marker.position.z);
-            Draw.sphere(dots, stack, marker.radius, 9, 9, refreshedui$GOAL[0], refreshedui$GOAL[1], refreshedui$GOAL[2], alpha);
+            Draw.sphere(dots, stack, marker.radius, 9, 9, marker.color[0], marker.color[1], marker.color[2], alpha);
             stack.pop();
         }
 
@@ -194,11 +240,13 @@ public abstract class ModelIKDebugMixin
     }
 
     /**
-     * Rebuilds the controller markers from the public IK config: for each enabled
-     * chain whose {@code target} is a real bone named {@code controller_*}, resolves
-     * the target position and sizes the marker to the chain's bone span (matching the
-     * goal sphere the stock overlay drew). Chains whose target is not a controller,
-     * or whose bones cannot be resolved, are skipped.
+     * Rebuilds the markers from the public IK config. For each enabled chain it
+     * resolves up to two markers: a green one on the {@code target} bone when that
+     * name contains {@code controller}, and an orange one on the {@code poleTarget}
+     * bone when that name contains {@code pole} (the pole vector the stock overlay
+     * also drew, before this rework hid it). Both are sized to the chain's bone span,
+     * matching the stock spheres. Chains matching neither token, or whose chain bones
+     * cannot be resolved, are skipped.
      */
     @Unique
     private static List<IKControllerMarker> refreshedui$gather(IModel model, MapType ikData)
@@ -227,13 +275,12 @@ public abstract class ModelIKDebugMixin
             }
 
             String target = chain.target();
+            String poleTarget = chain.poleTarget();
 
-            if (target == null || !target.startsWith(refreshedui$CONTROLLER_PREFIX))
-            {
-                continue;
-            }
+            boolean wantController = refreshedui$nameContains(target, refreshedui$CONTROLLER_TOKEN) && keys.contains(target);
+            boolean wantPole = refreshedui$isPole(poleTarget) && keys.contains(poleTarget);
 
-            if (!keys.contains(target) || !keys.contains(chain.tip()))
+            if ((!wantController && !wantPole) || !keys.contains(chain.tip()))
             {
                 continue;
             }
@@ -246,17 +293,19 @@ public abstract class ModelIKDebugMixin
             }
 
             Set<String> wanted = new HashSet<>(ids);
-            wanted.add(target);
+
+            if (wantController)
+            {
+                wanted.add(target);
+            }
+
+            if (wantPole)
+            {
+                wanted.add(poleTarget);
+            }
 
             Map<String, PivotFrame> frames = new HashMap<>(wanted.size() * 2);
             ModelPivotFrames.collect(model, wanted, frames);
-
-            PivotFrame targetFrame = frames.get(target);
-
-            if (targetFrame == null)
-            {
-                continue;
-            }
 
             List<Vector3f> pts = new ArrayList<>(ids.size());
             boolean complete = true;
@@ -291,7 +340,25 @@ public abstract class ModelIKDebugMixin
             float span = pts.get(0).distance(pts.get(n - 1));
             float pickHalf = span / Math.max(1, n - 1) * 0.2F;
 
-            out.add(new IKControllerMarker(target, chain.tip(), new Vector3f(targetFrame.position()), unit * 0.12F, pickHalf));
+            if (wantController)
+            {
+                PivotFrame targetFrame = frames.get(target);
+
+                if (targetFrame != null)
+                {
+                    out.add(new IKControllerMarker(target, chain.tip(), new Vector3f(targetFrame.position()), unit * 0.12F, pickHalf, refreshedui$GOAL));
+                }
+            }
+
+            if (wantPole)
+            {
+                PivotFrame poleFrame = frames.get(poleTarget);
+
+                if (poleFrame != null)
+                {
+                    out.add(new IKControllerMarker(poleTarget, chain.tip(), new Vector3f(poleFrame.position()), unit * 0.1F, pickHalf, refreshedui$POLE));
+                }
+            }
         }
 
         return out;
