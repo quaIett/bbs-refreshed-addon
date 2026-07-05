@@ -30,6 +30,7 @@
         "UIDockStackTabsMixin",
         "UIElementRenderMixin",
         "UIFilmPanelMixin",
+        "UIFilmPlayerSettingsOverlayPanelMixin",
         "UIFilmPreviewMixin",
         "UIFormMixin",
         "UIGeneralFormPanelMixin",

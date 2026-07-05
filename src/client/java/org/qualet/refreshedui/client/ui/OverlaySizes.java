@@ -17,6 +17,7 @@ import mchorse.bbs_mod.ui.framework.elements.overlay.UIPromptOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UISoundOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UIStringOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.overlay.UITextareaOverlayPanel;
+import mchorse.bbs_mod.ui.utility.UIUtilityOverlayPanel;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,8 +27,10 @@ import java.util.Map;
  *
  * <p>Upstream bbs-fs adds {@code getDefaultOverlayWidth/Height()} overrides on 16 overlay panels
  * (values in {@code UIConstants}). The addon keeps the base mod clean by mapping panel class ->
- * size here instead; {@code UIOverlayMixin} consults this map when {@code addOverlay} sizes a panel.
- * Exact-class lookup mirrors per-class overrides (an unmapped panel keeps the half-screen fallback).</p>
+ * size here instead; {@code UIOverlayMixin} consults this map from every {@code addOverlay} overload
+ * (half-screen default, {@code (int,int)}, and {@code (int,float)}) so a mapped panel always gets its
+ * pixel size regardless of which overload the call site used to open it. Exact-class lookup mirrors
+ * per-class overrides (an unmapped panel keeps whatever size the call site passed).</p>
  */
 public final class OverlaySizes
 {
@@ -49,8 +52,9 @@ public final class OverlaySizes
         SIZES.put(UILabelListOverlayPanel.class, new int[] {680, 280});
         SIZES.put(UIStringOverlayPanel.class, new int[] {320, 280});
         SIZES.put(UISoundOverlayPanel.class, new int[] {420, 320});
-        SIZES.put(UIFilmPlayerSettingsOverlayPanel.class, new int[] {280, 188});
+        SIZES.put(UIFilmPlayerSettingsOverlayPanel.class, new int[] {280, 240});
         SIZES.put(UIFilmMoveOverlayPanel.class, new int[] {272, 112});
+        SIZES.put(UIUtilityOverlayPanel.class, new int[] {240, 340});
     }
 
     /** Returns {@code {w, h}} px for the panel's exact class, or {@code null} for the half-screen fallback. */
