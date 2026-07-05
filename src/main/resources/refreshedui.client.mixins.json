@@ -13,6 +13,7 @@
         "DarkTooltipStyleMixin",
         "LightTooltipStyleMixin",
         "ModelIKDebugMixin",
+        "ReplayListEntryInvoker",
         "ScrollMixin",
         "TextboxMixin",
         "UIActionListMixin",
