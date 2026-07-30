@@ -23,11 +23,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Redesigned transform editor ({@link UITransform}, the base behind {@code UIPropTransform} /
- * {@code UIDeltaPropTransform}). Stock layout is 4 always-visible rows (translate / scale / rotate /
- * rotate2), each an icon + three X/Y/Z trackpads. The refreshed layout collapses that to a single
- * mode at a time: a segmented {@link UITransformModes} selector on top picks translate / scale /
- * rotate / rotate2, and below it sit just the three X/Y/Z trackpads of the active mode, each with a
- * colored axis letter (the number itself goes neutral).
+ * {@code UIDeltaPropTransform}). Stock layout is 3 always-visible rows (translate / scale / rotate),
+ * each an icon + three X/Y/Z trackpads. The refreshed layout collapses that to a single mode at a
+ * time: a segmented {@link UITransformModes} selector on top picks translate / scale / rotate, and
+ * below it sit just the three X/Y/Z trackpads of the active mode, each with a colored axis letter
+ * (the number itself goes neutral).
+ *
+ * <p>There used to be a fourth "rotate2" mode; BBS 2.4 dropped that row from {@code UITransform}
+ * entirely (the {@code r2x/r2y/r2z} trackpads gave way to {@code setRQuat}), so the selector is
+ * three-wide now.</p>
  *
  * <p>The two icons that carried a second function survive as right-click gestures on their selector
  * cell, mirroring how the original wired them onto the row icon:</p>
@@ -51,9 +55,6 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
     @Shadow public UITrackpad rx;
     @Shadow public UITrackpad ry;
     @Shadow public UITrackpad rz;
-    @Shadow public UITrackpad r2x;
-    @Shadow public UITrackpad r2y;
-    @Shadow public UITrackpad r2z;
 
     @Shadow protected UIIcon iconT;
     @Shadow private boolean uniformScale;
@@ -75,7 +76,6 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
         selector.addIcon(Icons.ALL_DIRECTIONS, UIKeys.TRANSFORMS_TRANSLATE, false);
         selector.addIcon(Icons.SCALE, UIKeys.TRANSFORMS_SCALE, false);
         selector.addIcon(Icons.REFRESH, UIKeys.TRANSFORMS_ROTATE, false);
-        selector.addIcon(Icons.REFRESH, UIKeys.TRANSFORMS_ROTATE2, true);
         selector.onRightClick((index) ->
         {
             if (index == 1)
@@ -179,8 +179,6 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
                 return new UITrackpad[]{this.sx, this.sy, this.sz};
             case 2:
                 return new UITrackpad[]{this.rx, this.ry, this.rz};
-            case 3:
-                return new UITrackpad[]{this.r2x, this.r2y, this.r2z};
             default:
                 return new UITrackpad[]{this.tx, this.ty, this.tz};
         }
@@ -211,8 +209,5 @@ public abstract class UITransformMixin extends UIElement implements ITransformMo
         this.rx.textbox.setColor(neutral);
         this.ry.textbox.setColor(neutral);
         this.rz.textbox.setColor(neutral);
-        this.r2x.textbox.setColor(neutral);
-        this.r2y.textbox.setColor(neutral);
-        this.r2z.textbox.setColor(neutral);
     }
 }

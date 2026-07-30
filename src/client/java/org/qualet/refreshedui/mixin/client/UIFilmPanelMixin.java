@@ -22,7 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Film panel theme:
  * <ul>
- *   <li>3.2b — rounded base surfaces (main bg, editor + child panels);</li>
+ *   <li>3.2b — rounded main background. The editor canvas and the per-panel surfaces used to be
+ *       rounded from here too (via {@code renderPanelSurfaces}), but BBS 2.4 unified the docking
+ *       system into {@code UIDockLayout} and dropped that method — those two redirects now live in
+ *       {@link UIDockLayoutMixin} and {@link UIDockSlotMixin};</li>
  *   <li>3.7 — film move / player-settings / details overlays use their fixed default size
  *       (route the explicit-size addOverlay calls to the no-size form when the panel is mapped;
  *       the undo-history overlay stays at its explicit size since it is not mapped).</li>
@@ -36,15 +39,6 @@ public abstract class UIFilmPanelMixin
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V", ordinal = 0)
     )
     private void refreshedui$roundMainBackground(Area area, Batcher2D batcher, int color)
-    {
-        RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.interfaceChrome());
-    }
-
-    @Redirect(
-        method = "renderPanelSurfaces",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V")
-    )
-    private void refreshedui$roundPanelSurface(Area area, Batcher2D batcher, int color)
     {
         RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.interfaceChrome());
     }
