@@ -31,7 +31,7 @@ Every change is applied through [Mixins](https://github.com/SpongePowered/Mixin)
 - **Refreshed icon atlas & menu banner** — a redrawn icon set and a new main-menu banner, layered in via a resource source-pack.
 - **Immersive form editor** — a subtle backdrop behind the form editor's right panel for a more focused editing surface.
 - **Reworked toggles** — toggle switches rendered from scratch with smooth state animation.
-- _(Experimental)_ **Bounded trackpads as sliders** — numeric inputs that have a min/max range render as draggable sliders.
+- **Themed sliders** — one look for every slider in the UI: a thin rail with a round knob and a separate box for typing the value. Applies to BBS's own sliders (settings, keyframe factories, pose/model editors, form panels) as well as to bounded trackpads, which are turned into sliders too. Left click on the box types a value, right click resets the field to what its panel loaded.
 
 ## Supported versions
 
