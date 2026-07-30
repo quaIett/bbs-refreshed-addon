@@ -1,6 +1,7 @@
 package org.qualet.refreshedui.mixin.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.cubic.IModel;
 import mchorse.bbs_mod.cubic.ik.ModelIKConfig;
 import mchorse.bbs_mod.cubic.ik.ModelIKDebug;
@@ -136,7 +137,7 @@ public abstract class ModelIKDebugMixin
 
         ci.cancel();
 
-        if (!ModelIKDebug.enabled || model == null || ikData == null)
+        if (!BBSSettings.ikDebug.enabled.get() || model == null || ikData == null)
         {
             return;
         }
@@ -196,7 +197,7 @@ public abstract class ModelIKDebugMixin
 
         ci.cancel();
 
-        if (!ModelIKDebug.enabled || model == null || ikData == null || stencilMap == null)
+        if (!BBSSettings.ikDebug.enabled.get() || model == null || ikData == null || stencilMap == null)
         {
             return;
         }
