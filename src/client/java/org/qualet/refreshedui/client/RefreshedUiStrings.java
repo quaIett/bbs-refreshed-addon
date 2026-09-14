@@ -41,6 +41,10 @@ public class RefreshedUiStrings
         set(l10n, "ik_controller_overlay-comment",
             "When enabled, the IK debug overlay shows only markers on target bones named controller_* (the reworked minimal overlay). Disable to restore BBS's full chain overlay (skeleton, effector, pole).",
             "Если включено, отладочный оверлей IK показывает только маркеры на целевых костях с именем controller_* (переработанный минимальный оверлей). Выключите, чтобы вернуть полный оверлей цепочки BBS (скелет, эффектор, полюс).", ru);
+        set(l10n, "refreshed_blur", "Refreshed Blur", "Refreshed Blur", ru);
+        set(l10n, "refreshed_blur-comment",
+            "When enabled, the blur behind panels uses the dual Kawase algorithm: a smoother, softer look for a fraction of the cost, since most of the work happens on downscaled copies of the screen. \"Blur behind panels\" and \"Blur radius\" still decide whether it runs and how strong it is. Disable to use BBS's original box blur.",
+            "Если включено, размытие за панелями использует алгоритм dual Kawase: более плавный и мягкий вид за малую часть стоимости, так как почти вся работа идёт на уменьшенных копиях экрана. «Размытие за панелями» и «Радиус размытия» по-прежнему решают, включено ли оно и насколько сильное. Выключите, чтобы вернуть исходное box-размытие BBS.", ru);
     }
 
     private static void set(L10n l10n, String suffix, String en, String ru, boolean useRu)

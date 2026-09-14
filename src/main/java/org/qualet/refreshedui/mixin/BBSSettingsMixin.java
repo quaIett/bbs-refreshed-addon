@@ -36,6 +36,7 @@ public abstract class BBSSettingsMixin
         ValueBoolean animations = new ValueBoolean("animations", true);
         ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
         ValueBoolean ikControllerOverlay = new ValueBoolean("ik_controller_overlay", true);
+        ValueBoolean refreshedBlur = new ValueBoolean("refreshed_blur", true);
 
         ValueGroup group = new ValueGroup("refreshed");
         group.icon = Icons.GEAR;
@@ -43,6 +44,7 @@ public abstract class BBSSettingsMixin
         group.add(animations);
         group.add(alternativeTrackpads);
         group.add(ikControllerOverlay);
+        group.add(refreshedBlur);
 
         builder.getCategory().add(group);
 
@@ -50,6 +52,7 @@ public abstract class BBSSettingsMixin
         RefreshedUiAddon.animations = animations;
         RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;
         RefreshedUiAddon.ikControllerOverlay = ikControllerOverlay;
+        RefreshedUiAddon.refreshedBlur = refreshedBlur;
         RefreshedUiAddon.refreshedGroup = group;
     }
 }

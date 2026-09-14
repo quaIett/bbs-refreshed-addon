@@ -32,6 +32,10 @@ public class RefreshedUiAddon implements BBSAddonMod
      *  Read via {@code mixin.client.ModelIKDebugMixin}. */
     public static ValueBoolean ikControllerOverlay;
 
+    /** When on, BBS's blur behind overlay panels runs as dual Kawase instead of its box blur; BBS's own
+     *  on/off and radius settings still apply. Default true. Read via {@code client.blur.RefreshedBlur}. */
+    public static ValueBoolean refreshedBlur;
+
     /** Nested "refreshed" group under personalization holding the settings above. */
     public static ValueGroup refreshedGroup;
 
