@@ -9,16 +9,12 @@ import mchorse.bbs_mod.ui.utils.icons.Icons;
 import mchorse.bbs_mod.utils.colors.Colors;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
-import org.lwjgl.opengl.GL30;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Mipmaps the icon atlas so the addon's high-resolution (2048&times;2048, 8&times; the logical 256
@@ -36,16 +32,25 @@ import java.util.Set;
  * covers the on-screen minification range while keeping neighbouring cells from bleeding together;
  * the glyphs' transparent margins mean any residual blur pulls in transparency, not a colour halo.</p>
  *
+ * <p>BBS 2.6: {@code Batcher2D#texturedProgram(Texture)} routes every texture whose Java-side
+ * {@code filter}/{@code mipmap} fields still say NEAREST through the pixel-art shader (setting
+ * {@code pixel_art_smoothing}, on by default), which reads level 0 via {@code texelFetch} and ignores
+ * the mips entirely. So the mips go through {@link Texture#generateMipmap()} and the filter through
+ * {@link Texture#setFilter(int)} to flip those fields, then the real min-filter/max-level are set on
+ * top. The glyph edges are colour-bled in the atlas itself ({@code tools/icons/bleed_atlas.js}),
+ * because {@code glGenerateMipmap} averages straight alpha and black transparent texels grey the edges.</p>
+ *
  * <p>UVs are normalised against {@code icon.textureW/H} (256), so the hi-res atlas needs no coordinate
- * changes &mdash; only the filter/mips. Applied once per GL texture id (cheap {@link Set} check after
- * the first draw), scoped to {@link Icons#ATLAS}. Kept separate from {@link Batcher2DMixin} (the sole
+ * changes &mdash; only the filter/mips. Applied once per {@link Texture} object (the "reload textures"
+ * button deletes and recreates it, and the new one usually gets the old GL id back &mdash; so the id
+ * can't be the key), scoped to {@link Icons#ATLAS}. Kept separate from {@link Batcher2DMixin} (the sole
  * MC-render-version-divergent file) to avoid entangling it.</p>
  */
 @Mixin(Batcher2D.class)
 public class Batcher2DIconFilterMixin
 {
     @org.spongepowered.asm.mixin.Unique
-    private static final Set<Integer> rui$mipmapped = new HashSet<>();
+    private static Texture rui$mipmapped;
 
     @Inject(method = "icon(Lmchorse/bbs_mod/ui/utils/icons/Icon;IFFFF)V", at = @At("HEAD"))
     private void rui$mipmapIconAtlas(Icon icon, int color, float x, float y, float ax, float ay, CallbackInfo ci)
@@ -90,17 +95,17 @@ public class Batcher2DIconFilterMixin
 
         Texture tex = BBSModClient.getTextures().getTexture(icon.texture);
 
-        if (tex == null || tex.id <= 0 || rui$mipmapped.contains(tex.id))
+        if (tex == null || tex.id <= 0 || tex == rui$mipmapped)
         {
             return;
         }
 
         GlStateManager._bindTexture(tex.id);
-        GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, 4);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        tex.setFilter(GL11.GL_LINEAR);
+        tex.generateMipmap();
+        tex.setParameter(GL12.GL_TEXTURE_MAX_LEVEL, 4);
+        tex.setParameter(GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
 
-        rui$mipmapped.add(tex.id);
+        rui$mipmapped = tex;
     }
 }
