@@ -11,7 +11,6 @@ import mchorse.bbs_mod.utils.colors.Colors;
 import org.joml.Vector2i;
 import org.qualet.refreshedui.client.anim.Animations;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
-import org.qualet.refreshedui.client.ui.OverlaySizes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,100 +22,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Map;
 
 /**
- * Fixed-size popup overlays (3.7): when {@code addOverlay(context, panel)} sizes the panel to half
- * the screen, substitute the panel's fixed preferred pixel size from {@link OverlaySizes} (if any).
- *
- * <p>Also drives the {@link OverlayReveal} appear animation: {@code setupPanel} (where every overlay is
- * attached) arms a fresh reveal for the overlay + its panel, and {@code render} fades the full-screen
- * backdrop in alongside the panel's slide-up.</p>
+ * Drives the {@link OverlayReveal} appear/close animation: {@code setupPanel} (where every overlay is
+ * attached) arms a fresh reveal for the overlay + its panel, {@code closeItself} plays the reverse, and
+ * {@code render} fades the full-screen backdrop alongside the panel's slide.
  */
 @Mixin(UIOverlay.class)
 public abstract class UIOverlayMixin
 {
     @Shadow @Final private static Map<String, Vector2i> offsets;
-
-    @Redirect(
-        method = "addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/UIElement;wh(FF)Lmchorse/bbs_mod/ui/framework/elements/UIElement;")
-    )
-    private static UIElement refreshedui$fixedSize(UIElement self, float w, float h)
-    {
-        if (self instanceof UIOverlayPanel)
-        {
-            int[] size = OverlaySizes.sizeFor((UIOverlayPanel) self);
-
-            if (size != null)
-            {
-                return self.wh(size[0], size[1]);
-            }
-        }
-
-        return self.wh(w, h);
-    }
-
-    /**
-     * Some panels (Configure player, Utility panel) are opened via the {@code (int w, float h)} or
-     * {@code (int w, int h)} overloads with a literal size baked into the call site instead of the
-     * half-screen default, so they aren't covered by {@link #refreshedui$fixedSize}. Redirect those
-     * overloads' size calls too, so {@link OverlaySizes} is the single source of truth for any mapped panel
-     * regardless of which overload opened it.
-     */
-    @Redirect(
-        method = "addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;IF)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/UIElement;w(I)Lmchorse/bbs_mod/ui/framework/elements/UIElement;")
-    )
-    private static UIElement refreshedui$fixedWidthMixed(UIElement self, int w)
-    {
-        if (self instanceof UIOverlayPanel)
-        {
-            int[] size = OverlaySizes.sizeFor((UIOverlayPanel) self);
-
-            if (size != null)
-            {
-                return self.w(size[0]);
-            }
-        }
-
-        return self.w(w);
-    }
-
-    @Redirect(
-        method = "addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;IF)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/UIElement;h(F)Lmchorse/bbs_mod/ui/framework/elements/UIElement;")
-    )
-    private static UIElement refreshedui$fixedHeightMixed(UIElement self, float h)
-    {
-        if (self instanceof UIOverlayPanel)
-        {
-            int[] size = OverlaySizes.sizeFor((UIOverlayPanel) self);
-
-            if (size != null)
-            {
-                return self.h(size[1]);
-            }
-        }
-
-        return self.h(h);
-    }
-
-    @Redirect(
-        method = "addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;II)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/UIElement;wh(II)Lmchorse/bbs_mod/ui/framework/elements/UIElement;")
-    )
-    private static UIElement refreshedui$fixedSizeInt(UIElement self, int w, int h)
-    {
-        if (self instanceof UIOverlayPanel)
-        {
-            int[] size = OverlaySizes.sizeFor((UIOverlayPanel) self);
-
-            if (size != null)
-            {
-                return self.wh(size[0], size[1]);
-            }
-        }
-
-        return self.wh(w, h);
-    }
 
     @Inject(method = "setupPanel", at = @At("TAIL"))
     private static void refreshedui$armReveal(UIContext context, UIOverlay overlay, UIOverlayPanel panel, CallbackInfo ci)

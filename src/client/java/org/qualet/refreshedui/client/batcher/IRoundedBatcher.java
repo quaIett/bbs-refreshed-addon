@@ -20,6 +20,14 @@ public interface IRoundedBatcher
     /** Rounded border with a rounded inset fill, both in one batch. {@code inset} is the border thickness. */
     void roundedFrame(float x, float y, float w, float h, float radius, float inset, int borderColor, int fillColor);
 
+    /**
+     * A 1px rounded outline drawn OVER already-painted content: the ring in {@code borderColor}, and
+     * everything outside the outer curve (inside the rect bounds) repainted in {@code outsideColor}, so
+     * square children (e.g. a banner image) get their corners cut to the curve. Both colours must be
+     * opaque; {@code outsideColor} should match whatever is behind the rect. (landing card, BBS 2.6)
+     */
+    void roundedOutlineOver(float x, float y, float w, float h, float radius, int borderColor, int outsideColor);
+
     /** Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap. */
     void roundedBoxSides(float x, float y, float w, float h, float radius, int color, boolean roundLeft, boolean roundRight);
 

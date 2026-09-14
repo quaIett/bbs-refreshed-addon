@@ -4,9 +4,7 @@
     "package": "org.qualet.refreshedui.mixin",
     "compatibilityLevel": "JAVA_17",
     "mixins": [
-        "BBSSettingsMixin",
-        "FilmMixin",
-        "ReplayMixin"
+        "BBSSettingsMixin"
     ],
     "injectors": {
         "defaultRequire": 1

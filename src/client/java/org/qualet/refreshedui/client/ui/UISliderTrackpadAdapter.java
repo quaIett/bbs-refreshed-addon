@@ -1,14 +1,17 @@
 package org.qualet.refreshedui.client.ui;
 
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.lwjgl.glfw.GLFW;
 
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.graphics.window.Window;
+import mchorse.bbs_mod.settings.values.base.BaseValueNumber;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.input.UITrackpad;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.ui.utils.values.UIValues;
 import mchorse.bbs_mod.utils.MathUtils;
 
 /**
@@ -54,6 +57,41 @@ public class UISliderTrackpadAdapter extends UITrackpad
     public UISliderTrackpadAdapter(Consumer<Double> callback)
     {
         super(callback);
+    }
+
+    /**
+     * Drop-in replacement for {@link UIValues#trackpad(Supplier)} (BBS 2.6): the same value-bound numeric
+     * field (write-through callback, reset context action, value binding), but built as this adapter.
+     * Form panels in 2.6 create their fields through that helper instead of {@code new UITrackpad(...)},
+     * so the panel mixins redirect the helper call to this.
+     */
+    public static UITrackpad boundTrackpad(Supplier<? extends BaseValueNumber<?>> value)
+    {
+        UISliderTrackpadAdapter trackpad = new UISliderTrackpadAdapter(null);
+
+        trackpad.callback = (v) -> value.get().setNumber(v);
+
+        Runnable read = () ->
+        {
+            BaseValueNumber<?> number = value.get();
+
+            if (number == null)
+            {
+                return;
+            }
+
+            double current = number.get().doubleValue();
+
+            if (current != trackpad.getValue())
+            {
+                trackpad.setValue(current);
+            }
+        };
+
+        UIValues.resettable(trackpad, value, read);
+        trackpad.valueBinding(read);
+
+        return trackpad;
     }
 
     /**

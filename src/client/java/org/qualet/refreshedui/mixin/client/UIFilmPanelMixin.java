@@ -3,13 +3,10 @@ package org.qualet.refreshedui.mixin.client;
 import mchorse.bbs_mod.ui.film.UIFilmPanel;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
-import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlay;
-import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import org.qualet.refreshedui.client.anim.PanelTransitions;
-import org.qualet.refreshedui.client.ui.OverlaySizes;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -26,10 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   <li>3.2b — rounded main background. The editor canvas and the per-panel surfaces used to be
  *       rounded from here too (via {@code renderPanelSurfaces}), but BBS 2.4 unified the docking
  *       system into {@code UIDockLayout} and dropped that method — those two redirects now live in
- *       {@link UIDockLayoutMixin} and {@link UIDockSlotMixin};</li>
- *   <li>3.7 — film move / player-settings / details overlays use their fixed default size
- *       (route the explicit-size addOverlay calls to the no-size form when the panel is mapped;
- *       the undo-history overlay stays at its explicit size since it is not mapped).</li>
+ *       {@link UIDockLayoutMixin} and {@link UIDockSlotMixin}.</li>
  * </ul>
  */
 @Mixin(UIFilmPanel.class)
@@ -49,37 +43,26 @@ public abstract class UIFilmPanelMixin
         RoundedAreas.renderRounded(area, batcher, color, UICornerRadii.interfaceChrome());
     }
 
-    @Redirect(
-        method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;IF)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;")
-    )
-    private UIOverlay refreshedui$defaultSizeIF(UIContext context, UIOverlayPanel panel, int w, float h)
+    /** Active top-bar editor button (camera / replays): adaptive contrast icon (white/black by primary
+     * brightness) over the highlight (3.9). BBS 2.6 dropped {@code renderTopBarButton}: the buttons now
+     * sit in the shared {@code UIPanelActionBar} as {@code editor(icon, editor::isVisible)} and each
+     * {@link UIIcon} paints its own highlight + icon, so the {@code active} flag is refreshed here once per
+     * frame from the same visibility the bar highlights by. The fill itself comes from the global
+     * highlight restyle. */
+    @Inject(method = "render(Lmchorse/bbs_mod/ui/framework/UIContext;)V", at = @At("HEAD"))
+    private void refreshedui$blackenTopBarButton(UIContext context, CallbackInfo ci)
     {
-        return OverlaySizes.sizeFor(panel) != null
-            ? UIOverlay.addOverlay(context, panel)
-            : UIOverlay.addOverlay(context, panel, w, h);
+        UIFilmPanel self = (UIFilmPanel) (Object) this;
+
+        refreshedui$tintEditorButton(self.openCameraEditor, self.cameraEditor);
+        refreshedui$tintEditorButton(self.openReplayEditor, self.replayEditor);
     }
 
-    @Redirect(
-        method = "*",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;addOverlay(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlayPanel;II)Lmchorse/bbs_mod/ui/framework/elements/overlay/UIOverlay;")
-    )
-    private UIOverlay refreshedui$defaultSizeII(UIContext context, UIOverlayPanel panel, int w, int h)
-    {
-        return OverlaySizes.sizeFor(panel) != null
-            ? UIOverlay.addOverlay(context, panel)
-            : UIOverlay.addOverlay(context, panel, w, h);
-    }
-
-    /** Active top-bar editor tab: adaptive contrast icon (white/black by primary brightness) over the highlight (3.9).
-     * The rounded fill itself comes from the global {@code UIDashboardPanels.renderHighlight} inject
-     * (see {@link UIDashboardPanelsMixin}). */
-    @Inject(method = "renderTopBarButton", at = @At("HEAD"))
-    private void refreshedui$blackenTopBarButton(UIContext context, UIIcon button, boolean active, CallbackInfo ci)
+    private static void refreshedui$tintEditorButton(UIIcon button, UIElement editor)
     {
         if (button != null)
         {
-            button.active(active).activeColor(UIContrastColor.onPrimary());
+            button.active(editor != null && editor.isVisible()).activeColor(UIContrastColor.onPrimary());
         }
     }
 

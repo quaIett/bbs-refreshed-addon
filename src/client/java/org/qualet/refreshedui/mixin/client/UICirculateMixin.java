@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * UICirculate theme:
  * <ul>
- *   <li>3.2a — rounded background ({@code bevelBox} kept when rounding is off);</li>
+ *   <li>3.2a — rounded background ({@code surfaceBox} kept when rounding is off);</li>
  *   <li>3.4 — label without shadow ({@code textShadow} -> {@code text});</li>
  *   <li>3.17 — adaptive label color: white or black by the brightness of the fill (custom color or the
  *       BBS primary color), matching {@code UIButton}.</li>
@@ -32,7 +32,7 @@ public abstract class UICirculateMixin
 
     @Redirect(
         method = "renderSkin",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;bevelBox(IIIIIZZ)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;surfaceBox(IIIIIZZ)V")
     )
     private void refreshedui$roundBackground(Batcher2D batcher, int x1, int y1, int x2, int y2, int fill, boolean shadow, boolean border)
     {
@@ -44,7 +44,7 @@ public abstract class UICirculateMixin
         }
         else
         {
-            batcher.bevelBox(x1, y1, x2, y2, fill, shadow, border);
+            batcher.surfaceBox(x1, y1, x2, y2, fill, shadow, border);
         }
     }
 

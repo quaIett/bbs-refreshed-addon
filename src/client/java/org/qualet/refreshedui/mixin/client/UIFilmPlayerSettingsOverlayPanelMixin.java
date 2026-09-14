@@ -14,19 +14,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * full-width Mob recording radius, and Replace inventory / Apply to player side by side instead of
  * stacked full-width — matches the reference layout the user approved. Rebuilds {@code editor}'s
  * children at constructor TAIL, once the fields (hp, hunger, ...) already exist; the original scroll
- * view container is reused, just repopulated, so no scrolling is needed at the panel's fixed pixel
- * size (OverlaySizes). The two buttons carry their original stacked-layout marginTop (10/4) which would
+ * view container is reused, just repopulated. The two buttons carry their original stacked-layout marginTop (10/4) which would
  * misalign them side by side, so it's reset to 0 before they're placed in a row.
  */
 @Mixin(UIFilmPlayerSettingsOverlayPanel.class)
 public abstract class UIFilmPlayerSettingsOverlayPanelMixin
 {
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void refreshedui$regrid(Film film, CallbackInfo ci)
+    private void refreshedui$regrid(Film film, int index, CallbackInfo ci)
     {
         UIFilmPlayerSettingsOverlayPanel self = (UIFilmPlayerSettingsOverlayPanel) (Object) this;
 
-        self.replaceInventory.marginTop(0);
+        self.recordHotbar.marginTop(0);
         self.applyToPlayer.marginTop(0);
 
         self.editor.removeAll();
@@ -40,7 +39,7 @@ public abstract class UIFilmPlayerSettingsOverlayPanelMixin
                 UI.column(UI.label(UIKeys.FILM_PLAYER_SETTINGS_XP_PROGRESS), self.xpProgress)
             ),
             UI.column(UI.label(UIKeys.FILM_PLAYER_SETTINGS_MOB_RECORDING_RADIUS), self.mobRecordingRadius),
-            UI.row(self.replaceInventory, self.applyToPlayer).marginTop(10)
+            UI.row(self.recordHotbar, self.applyToPlayer).marginTop(10)
         );
     }
 }

@@ -1,8 +1,8 @@
 package org.qualet.refreshedui;
 
-import mchorse.bbs_mod.events.BBSAddonMod;
-import mchorse.bbs_mod.events.Subscribe;
-import mchorse.bbs_mod.events.register.RegisterSourcePacksEvent;
+import mchorse.bbs_mod.api.BBSAddonMod;
+import mchorse.bbs_mod.api.Subscribe;
+import mchorse.bbs_mod.api.events.RegisterSourcePacksEvent;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
 import org.qualet.refreshedui.resources.RefreshedUiAssetsSourcePack;

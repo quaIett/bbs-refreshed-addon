@@ -97,7 +97,7 @@ public abstract class UIButtonMixin
 
     @Redirect(
         method = "renderSkin",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;bevelBox(IIIIIZZ)V")
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;surfaceBox(IIIIIZZ)V")
     )
     private void refreshedui$roundBackground(Batcher2D batcher, int x1, int y1, int x2, int y2, int fill, boolean shadow, boolean border)
     {
@@ -109,7 +109,7 @@ public abstract class UIButtonMixin
         }
         else
         {
-            batcher.bevelBox(x1, y1, x2, y2, fill, shadow, border);
+            batcher.surfaceBox(x1, y1, x2, y2, fill, shadow, border);
         }
     }
 }

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * the old beveled 3-box handle, and {@code renderScrollbar} feeds it a drag-aware flat color.
  *
  * <p>{@code bar} is a full-method replacement via {@code @Inject(HEAD, cancellable)} (see OVERWRITES.md).
- * When rounding is off it falls back to the old {@code bevelBox} look.</p>
+ * When rounding is off it falls back to the old {@code surfaceBox} look.</p>
  */
 @Mixin(Scroll.class)
 public abstract class ScrollMixin
@@ -51,7 +51,7 @@ public abstract class ScrollMixin
             }
             else
             {
-                batcher.bevelBox(x1, y1, x2, y2, fill, true, false);
+                batcher.surfaceBox(x1, y1, x2, y2, fill, true, false);
             }
         }
 

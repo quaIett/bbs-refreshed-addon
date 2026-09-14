@@ -8,10 +8,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Set;
+import java.util.Map;
 
 /**
- * Overrides two of BBS's <b>own</b> {@code bbs} namespace assets — the icon atlas and the menu banner —
+ * Overrides some of BBS's <b>own</b> {@code bbs} namespace assets — the icon atlas and the landing banner —
  * with the refreshed-theme versions bundled in this addon's JAR.
  *
  * <p>BBS serves its own assets through {@link mchorse.bbs_mod.resources.packs.InternalAssetsSourcePack}
@@ -19,6 +19,9 @@ import java.util.Set;
  * returns the FIRST pack whose {@link #hasAsset} matches, so to win we must be registered ahead of BBS's
  * internal pack via {@code provider.registerFirst(...)} (see {@code RefreshedUiAddon}). The new icon atlas
  * is mandatory: the addon's mixins reference atlas indices that don't exist in the clean atlas.</p>
+ *
+ * <p>Since BBS 2.6 the landing screen crossfades four banners ({@code bg1..bg4}); all four slots serve our
+ * single banner, so the landing shows it statically.</p>
  *
  * <p>Our copies live under a UNIQUE internal prefix ({@code assets/refreshedui/bbs_override/...}) rather than
  * mirroring BBS's {@code assets/bbs/assets/...} path — sharing the exact path across two JARs would make
@@ -28,11 +31,15 @@ public class RefreshedUiAssetsSourcePack implements ISourcePack
 {
     private static final Class<?> ANCHOR = RefreshedUiAssetsSourcePack.class;
     private static final String INTERNAL = "assets/refreshedui/bbs_override";
+    private static final String BANNER = "textures/banners/bg.png";
 
-    /** Asset paths (under the {@code assets} source) we override; everything else falls through to BBS. */
-    private static final Set<String> OVERRIDES = Set.of(
-        "textures/icons.png",
-        "textures/banners/bg.png"
+    /** Asset path (under the {@code assets} source) → our bundled file; everything else falls through to BBS. */
+    private static final Map<String, String> OVERRIDES = Map.of(
+        "textures/icons.png", "textures/icons.png",
+        "textures/banners/bg1.png", BANNER,
+        "textures/banners/bg2.png", BANNER,
+        "textures/banners/bg3.png", BANNER,
+        "textures/banners/bg4.png", BANNER
     );
 
     @Override
@@ -44,18 +51,16 @@ public class RefreshedUiAssetsSourcePack implements ISourcePack
     @Override
     public boolean hasAsset(Link link)
     {
-        if (!Link.ASSETS.equals(link.source) || !OVERRIDES.contains(link.path))
-        {
-            return false;
-        }
+        String file = this.resolve(link);
 
-        return ANCHOR.getResource("/" + INTERNAL + "/" + link.path) != null;
+        return file != null && ANCHOR.getResource(file) != null;
     }
 
     @Override
     public InputStream getAsset(Link link) throws IOException
     {
-        InputStream stream = ANCHOR.getResourceAsStream("/" + INTERNAL + "/" + link.path);
+        String file = this.resolve(link);
+        InputStream stream = file == null ? null : ANCHOR.getResourceAsStream(file);
 
         if (stream == null)
         {
@@ -63,6 +68,13 @@ public class RefreshedUiAssetsSourcePack implements ISourcePack
         }
 
         return stream;
+    }
+
+    private String resolve(Link link)
+    {
+        String path = Link.ASSETS.equals(link.source) ? OVERRIDES.get(link.path) : null;
+
+        return path == null ? null : "/" + INTERNAL + "/" + path;
     }
 
     @Override

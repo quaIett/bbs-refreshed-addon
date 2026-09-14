@@ -16,7 +16,8 @@ plugins {
 def mc = (project.findProperty("mc") ?: "1.20.1").toString()
 def MC = [
 	"1.20.1"   : [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.4-1.20.1.jar", pin: "1.20.1"            , suffix: "1.20.1"],
-	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.4-1.20.4.jar", pin: "1.20.4"            , suffix: "1.20.4"],
+	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.4-npc-1.20.4.jar", pin: "1.20.4"         , suffix: "npc-1.20.4"],
+	"1.20.4-fs": [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.6-1.20.4.jar"  , pin: "1.20.4"         , suffix: "fs2.6-1.20.4"],
 	"universal": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.4-1.20.1.jar", pin: ">=1.20.1 <=1.20.4", suffix: "1.20.x"],
 ]
 if (!MC.containsKey(mc)) {
@@ -82,5 +83,13 @@ java {
 jar {
 	from("LICENSE") {
 		rename { "${it}_${project.base.archivesName.get()}"}
+	}
+}
+
+// Diagnostic: `./gradlew runClient -Pprobe` force-loads every mixin target at client init and
+// writes run/refreshedui-probe.txt listing which mixin applications passed/failed (see MixinProbe).
+if (project.hasProperty("probe")) {
+	tasks.named("runClient").configure {
+		jvmArgs "-Drefreshedui.probe=true"
 	}
 }

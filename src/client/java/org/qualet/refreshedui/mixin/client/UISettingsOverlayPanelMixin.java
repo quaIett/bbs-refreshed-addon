@@ -22,9 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Map;
 
 /**
- * Settings side panel inset (3.6): inset the side panel fill and divider by 1px so they sit inside
- * the new rounded-frame border drawn by the inherited {@link UISettingsOverlayPanel} super-call.
- * box ordinal 0 = side panel fill, ordinal 1 = divider.
+ * Settings side panel inset (3.6): inset the side panel fill by 1px so it sits inside the new
+ * rounded-frame border drawn by the inherited {@link UISettingsOverlayPanel} super-call.
+ * box ordinal 0 = side panel fill (BBS 2.6 dropped the 1px divider box — tone separation only).
  *
  * <p>3.9 — active module button draws a black icon over the primary highlight.</p>
  * <p>3.14 — append the addon's nested "refreshed" group (header + values) at the bottom of the
@@ -59,15 +59,6 @@ public abstract class UISettingsOverlayPanelMixin
     private void refreshedui$insetSide(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
     {
         batcher.box(x1 + 1, y1, x2, y2 - 1, color);
-    }
-
-    @Redirect(
-        method = "renderBackground",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 1)
-    )
-    private void refreshedui$insetDivider(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
-    {
-        batcher.box(x1, y1, x2, y2 - 1, color);
     }
 
     /** Active module: adaptive contrast icon (white/black by primary brightness) over the primary highlight. */

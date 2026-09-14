@@ -93,11 +93,6 @@ public abstract class UITrackpadMixin
     @Unique
     private void refreshedui$drawHalfIcon(Batcher2D batcher, Icon ic, int color, Area button)
     {
-        if (BBSSettings.isLightTheme() && (color & 0xFFFFFF) == 0xFFFFFF)
-        {
-            color = color & 0xFF000000;
-        }
-
         float w = ic.w / 2F;
         float h = ic.h / 2F;
         float cx = button.x + button.w / 2F;

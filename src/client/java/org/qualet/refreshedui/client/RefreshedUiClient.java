@@ -21,5 +21,10 @@ public class RefreshedUiClient implements ClientModInitializer
         RefreshedUiStrings.apply(BBSModClient.getL10n());
 
         LOG.info("RefreshedUiClient.onInitializeClient — registered refreshed l10n labels");
+
+        if (MixinProbe.enabled())
+        {
+            MixinProbe.run();
+        }
     }
 }

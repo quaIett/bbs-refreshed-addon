@@ -372,6 +372,54 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     }
 
     /**
+     * 1px rounded outline over existing content. The straight edges are plain boxes; the curves use the
+     * rounded-rect mask with an INVERTED blend ({@code src * (1 - maskA) + dst * maskA}): the mask is opaque
+     * inside a silhouette, so the fill lands only outside its curve and existing pixels inside are kept.
+     * Pass 1 (inner rect, border colour) paints the arc band of the ring; pass 2 (outer rect, outside colour)
+     * then cuts everything beyond the outer curve, including the edge boxes' overhang and square children.
+     */
+    @Override
+    public void roundedOutlineOver(float x, float y, float w, float h, float radius, int borderColor, int outsideColor)
+    {
+        if (w <= 2F || h <= 2F)
+        {
+            return;
+        }
+
+        this.box(x, y, x + w, y + 1F, borderColor);
+        this.box(x, y + h - 1F, x + w, y + h, borderColor);
+        this.box(x, y + 1F, x + 1F, y + h - 1F, borderColor);
+        this.box(x + w - 1F, y + 1F, x + w, y + h - 1F, borderColor);
+
+        float outerR = clampRoundedRectRadius(w, h, radius);
+
+        if (outerR < ROUNDED_RECT_MIN_RADIUS)
+        {
+            return;
+        }
+
+        float innerR = clampRoundedRectRadius(w - 2F, h - 2F, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - 1F));
+        Texture mask = this.getRoundedRectMask();
+        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        BufferBuilder builder = Tessellator.getInstance().getBuffer();
+
+        this.context.draw();
+
+        RenderSystem.enableBlend();
+        RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.DstFactor.SRC_ALPHA, GlStateManager.SrcFactor.ZERO, GlStateManager.DstFactor.ONE);
+        RenderSystem.setShaderTexture(0, mask.id);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+
+        emitRoundedSliceMask(builder, matrix4f, x + 1F, y + 1F, w - 2F, h - 2F, innerR, Colors.A100 | borderColor);
+        emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, Colors.A100 | outsideColor);
+
+        BufferRenderer.drawWithGlobalProgram(builder.end());
+
+        RenderSystem.defaultBlendFunc();
+    }
+
+    /**
      * Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap whose
      * flat side meets a straight body. Single draw call, no scissor.
      */

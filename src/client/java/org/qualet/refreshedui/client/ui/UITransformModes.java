@@ -82,7 +82,7 @@ public class UITransformModes extends UIIcons
     {
         if (this.isEnabled() && this.area.isInside(context) && !this.icons.isEmpty())
         {
-            int index = this.indexAt(context.mouseX);
+            int index = this.modeIndexAt(context.mouseX);
 
             if (context.mouseButton == 0)
             {
@@ -111,7 +111,7 @@ public class UITransformModes extends UIIcons
         return super.subMouseClicked(context);
     }
 
-    private int indexAt(int mouseX)
+    private int modeIndexAt(int mouseX)
     {
         int count = this.icons.size();
         int index = (int) ((mouseX - this.area.x) / (this.area.w / (float) count));
@@ -136,7 +136,7 @@ public class UITransformModes extends UIIcons
         RoundedAreas.renderRounded(this.area, context.batcher, BBSSettings.deepSurface(), radius);
 
         float cellW = this.area.w / (float) count;
-        int hovered = this.hover ? this.indexAt(context.mouseX) : -1;
+        int hovered = this.hover ? this.modeIndexAt(context.mouseX) : -1;
 
         for (int i = 0; i < count; i++)
         {

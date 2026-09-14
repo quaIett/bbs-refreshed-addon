@@ -3,13 +3,12 @@ package org.qualet.refreshedui.mixin.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.cubic.IModel;
-import mchorse.bbs_mod.cubic.ik.ModelIKConfig;
+import mchorse.bbs_mod.forms.forms.ModelForm;
 import mchorse.bbs_mod.cubic.ik.ModelIKDebug;
-import mchorse.bbs_mod.cubic.ik.ModelIKIO;
-import mchorse.bbs_mod.cubic.model.bobj.BOBJModel;
+import mchorse.bbs_mod.forms.forms.utils.FormBone;
+import mchorse.bbs_mod.settings.values.base.BaseValue;
 import mchorse.bbs_mod.cubic.render.CubicRenderer.PivotFrame;
 import mchorse.bbs_mod.cubic.render.ModelPivotFrames;
-import mchorse.bbs_mod.data.types.MapType;
 import mchorse.bbs_mod.forms.forms.Form;
 import mchorse.bbs_mod.graphics.Draw;
 import mchorse.bbs_mod.ui.framework.elements.utils.StencilMap;
@@ -59,7 +58,7 @@ import java.util.Set;
  *
  * <p>When on, both {@code render} and {@code renderStencil} are cancelled at HEAD
  * and fully replaced. The package-private {@code ModelIKCache} is intentionally
- * bypassed: chains are rebuilt from the public {@link ModelIKIO#fromData} config and
+ * bypassed: chains are rebuilt from the public {@link FormBone} IK properties (BBS 2.6+) and
  * the hierarchy walk is mirrored locally, so the mixin never touches non-exported
  * API. Buffer handling uses the 1.20.x {@link Tessellator#getBuffer()} path (the
  * addon's master build targets MC 1.20.1 / 1.20.4).
@@ -124,11 +123,11 @@ public abstract class ModelIKDebugMixin
     }
 
     @Inject(
-        method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lmchorse/bbs_mod/cubic/IModel;Lmchorse/bbs_mod/data/types/MapType;Ljava/lang/String;)V",
+        method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lmchorse/bbs_mod/cubic/IModel;Lmchorse/bbs_mod/forms/forms/ModelForm;Ljava/lang/String;)V",
         at = @At("HEAD"),
         cancellable = true
     )
-    private static void refreshedui$renderControllers(MatrixStack stack, IModel model, MapType ikData, String selectedTip, CallbackInfo ci)
+    private static void refreshedui$renderControllers(MatrixStack stack, IModel model, ModelForm form, String selectedTip, CallbackInfo ci)
     {
         if (!refreshedui$controllerOnly())
         {
@@ -137,12 +136,12 @@ public abstract class ModelIKDebugMixin
 
         ci.cancel();
 
-        if (!BBSSettings.ikDebug.enabled.get() || model == null || ikData == null)
+        if (!BBSSettings.ikDebug.enabled.get() || model == null || form == null)
         {
             return;
         }
 
-        List<IKControllerMarker> markers = refreshedui$gather(model, ikData);
+        List<IKControllerMarker> markers = refreshedui$gather(model, form);
 
         if (markers.isEmpty())
         {
@@ -156,7 +155,7 @@ public abstract class ModelIKDebugMixin
 
         stack.push();
 
-        if (model instanceof BOBJModel)
+        if (model.isFacingFlipped())
         {
             stack.multiply(RotationAxis.POSITIVE_Y.rotation(MathUtils.PI));
         }
@@ -184,11 +183,11 @@ public abstract class ModelIKDebugMixin
     }
 
     @Inject(
-        method = "renderStencil(Lnet/minecraft/client/util/math/MatrixStack;Lmchorse/bbs_mod/cubic/IModel;Lmchorse/bbs_mod/data/types/MapType;Lmchorse/bbs_mod/ui/framework/elements/utils/StencilMap;Lmchorse/bbs_mod/forms/forms/Form;)V",
+        method = "renderStencil(Lnet/minecraft/client/util/math/MatrixStack;Lmchorse/bbs_mod/cubic/IModel;Lmchorse/bbs_mod/forms/forms/ModelForm;Lmchorse/bbs_mod/ui/framework/elements/utils/StencilMap;Lmchorse/bbs_mod/forms/forms/Form;)V",
         at = @At("HEAD"),
         cancellable = true
     )
-    private static void refreshedui$renderStencilControllers(MatrixStack stack, IModel model, MapType ikData, StencilMap stencilMap, Form form, CallbackInfo ci)
+    private static void refreshedui$renderStencilControllers(MatrixStack stack, IModel model, ModelForm modelForm, StencilMap stencilMap, Form form, CallbackInfo ci)
     {
         if (!refreshedui$controllerOnly())
         {
@@ -197,12 +196,12 @@ public abstract class ModelIKDebugMixin
 
         ci.cancel();
 
-        if (!BBSSettings.ikDebug.enabled.get() || model == null || ikData == null || stencilMap == null)
+        if (!BBSSettings.ikDebug.enabled.get() || model == null || modelForm == null || stencilMap == null)
         {
             return;
         }
 
-        List<IKControllerMarker> markers = refreshedui$gather(model, ikData);
+        List<IKControllerMarker> markers = refreshedui$gather(model, modelForm);
 
         if (markers.isEmpty())
         {
@@ -214,7 +213,7 @@ public abstract class ModelIKDebugMixin
 
         stack.push();
 
-        if (model instanceof BOBJModel)
+        if (model.isFacingFlipped())
         {
             stack.multiply(RotationAxis.POSITIVE_Y.rotation(MathUtils.PI));
         }
@@ -241,7 +240,7 @@ public abstract class ModelIKDebugMixin
     }
 
     /**
-     * Rebuilds the markers from the public IK config. For each enabled chain it
+     * Rebuilds the markers from the bones' IK properties. For each enabled chain it
      * resolves up to two markers: a green one on the {@code target} bone when that
      * name contains {@code controller}, and an orange one on the {@code poleTarget}
      * bone when that name contains {@code pole} (the pole vector the stock overlay
@@ -250,15 +249,8 @@ public abstract class ModelIKDebugMixin
      * cannot be resolved, are skipped.
      */
     @Unique
-    private static List<IKControllerMarker> refreshedui$gather(IModel model, MapType ikData)
+    private static List<IKControllerMarker> refreshedui$gather(IModel model, ModelForm form)
     {
-        ModelIKConfig config = ModelIKIO.fromData(ikData);
-
-        if (config == null || config.chains() == null || config.chains().isEmpty())
-        {
-            return Collections.emptyList();
-        }
-
         Collection<String> keys = model.getAllGroupKeys();
 
         if (keys == null)
@@ -268,27 +260,32 @@ public abstract class ModelIKDebugMixin
 
         List<IKControllerMarker> out = new ArrayList<>();
 
-        for (ModelIKConfig.Chain chain : config.chains())
+        for (BaseValue value : form.bones.getAll())
         {
-            if (chain == null || !chain.enabled())
+            if (!(value instanceof FormBone bone) || !bone.hasChain() || !bone.ik.get().enabled)
             {
                 continue;
             }
 
-            String target = chain.target();
-            String poleTarget = chain.poleTarget();
+            String tip = bone.getId();
+            String target = bone.ikTarget.get();
+            String poleTarget = bone.ikPoleTarget.get();
 
             boolean wantController = refreshedui$nameContains(target, refreshedui$CONTROLLER_TOKEN) && keys.contains(target);
             boolean wantPole = refreshedui$isPole(poleTarget) && keys.contains(poleTarget);
 
-            if ((!wantController && !wantPole) || !keys.contains(chain.tip()))
+            if ((!wantController && !wantPole) || !keys.contains(tip))
             {
                 continue;
             }
 
-            List<String> ids = refreshedui$buildChain(model, chain.tip(), chain.chainLength());
+            List<String> ids = refreshedui$buildChain(model, tip, bone.ikChainLength.get());
 
-            if (ids.size() < 2)
+            /* Same validation as the stock compiler: a target (or pole) that is one of the chain's own bones is dropped. */
+            wantController &= !ids.contains(target);
+            wantPole &= !ids.contains(poleTarget);
+
+            if (ids.size() < 2 || (!wantController && !wantPole))
             {
                 continue;
             }
@@ -306,7 +303,7 @@ public abstract class ModelIKDebugMixin
             }
 
             Map<String, PivotFrame> frames = new HashMap<>(wanted.size() * 2);
-            ModelPivotFrames.collect(model, wanted, frames);
+            ModelPivotFrames.collect(model, wanted, frames, null, true);
 
             List<Vector3f> pts = new ArrayList<>(ids.size());
             boolean complete = true;
@@ -347,7 +344,7 @@ public abstract class ModelIKDebugMixin
 
                 if (targetFrame != null)
                 {
-                    out.add(new IKControllerMarker(target, chain.tip(), new Vector3f(targetFrame.position()), unit * 0.12F, pickHalf, refreshedui$GOAL));
+                    out.add(new IKControllerMarker(target, tip, new Vector3f(targetFrame.position()), unit * 0.12F, pickHalf, refreshedui$GOAL));
                 }
             }
 
@@ -357,7 +354,7 @@ public abstract class ModelIKDebugMixin
 
                 if (poleFrame != null)
                 {
-                    out.add(new IKControllerMarker(poleTarget, chain.tip(), new Vector3f(poleFrame.position()), unit * 0.1F, pickHalf, refreshedui$POLE));
+                    out.add(new IKControllerMarker(poleTarget, tip, new Vector3f(poleFrame.position()), unit * 0.1F, pickHalf, refreshedui$POLE));
                 }
             }
         }
