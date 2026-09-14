@@ -69,6 +69,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.framework.elements.input.items.UIItems",
         "mchorse.bbs_mod.ui.framework.elements.input.list.UIList",
         "mchorse.bbs_mod.ui.framework.elements.input.text.utils.Textbox",
+        "mchorse.bbs_mod.ui.framework.elements.input.text.UITextarea",
         "mchorse.bbs_mod.ui.framework.elements.layout.UIDockLayout",
         "mchorse.bbs_mod.ui.framework.elements.layout.UIDockLayout$UIDockSlot",
         "mchorse.bbs_mod.ui.framework.elements.layout.UIDockLayout$UIDockStackTabs",

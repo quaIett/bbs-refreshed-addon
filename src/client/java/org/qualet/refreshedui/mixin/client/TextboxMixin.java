@@ -1,55 +1,89 @@
 package org.qualet.refreshedui.mixin.client;
 
+import mchorse.bbs_mod.BBSSettings;
+import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.input.text.utils.Textbox;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
-import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
-import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.IMaterialFieldHost;
+import org.qualet.refreshedui.client.ui.MaterialField;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Rounds the text field background (3.2a), adds the hairline field border (design overhaul, 3),
- *  and rounds the focused-field accent underline. */
+/** MD3 filled text field (design 2026-09-15): container + hover layer + animated bottom indicator via
+ *  {@link MaterialField}, primary-coloured caret, flat (shadowless) text and a neutral placeholder. */
 @Mixin(Textbox.class)
-public abstract class TextboxMixin
+public abstract class TextboxMixin implements IMaterialFieldHost
 {
+    @Shadow private boolean focused;
+    @Shadow private boolean enabled;
+    @Shadow public Area area;
+
+    @Unique
+    private final MaterialField.State refreshedui$field = new MaterialField.State();
+
+    @Unique
+    private boolean refreshedui$hovered;
+
+    @Override
+    public MaterialField.State refreshedui$fieldState()
+    {
+        return this.refreshedui$field;
+    }
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void refreshedui$captureHover(UIContext context, CallbackInfo ci)
+    {
+        this.refreshedui$hovered = this.enabled && this.area.isInside(context.mouseX, context.mouseY);
+    }
+
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V")
     )
-    private void refreshedui$roundBackground(Area area, Batcher2D batcher, int color)
+    private void refreshedui$materialSurface(Area area, Batcher2D batcher, int color)
     {
-        RoundedAreas.renderField(area, batcher, color, UICornerRadii.interfaceChrome());
+        MaterialField.render(batcher, area, UICornerRadii.interfaceChrome(), this.refreshedui$field, this.refreshedui$hovered, this.focused);
     }
 
-    /**
-     * The focused-field accent (drawn when {@code border && focused}) is a flat full-width box at the
-     * very bottom of the field, so its sharp corners overshoot the rounded field's bottom corners.
-     * Inset it by the field radius — so it spans exactly the field's straight bottom run — and round
-     * its ends into a pill where the corners start to curve. Ordinal 0 = this accent box; the later
-     * {@code box} calls (selection highlight, caret) are left untouched.
-     */
+    /** Stock focused accent (ordinal 0, {@code border && focused}) — replaced by the surface's own indicator. */
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 0)
     )
-    private void refreshedui$roundAccent(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
+    private void refreshedui$dropAccent(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
+    {}
+
+    /** Caret (ordinal 2, after the selection highlight) — primary colour, stock blink alpha kept. */
+    @Redirect(
+        method = "render",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 2)
+    )
+    private void refreshedui$primaryCaret(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
     {
-        float radius = UICornerRadii.interfaceChrome();
-        float thickness = Math.max(y2 - y1, 1.5F);
-        float by = y2 - thickness;
+        batcher.box(x1, y1, x2, y2, (color & 0xff000000) | (BBSSettings.primaryColor.get() & 0xffffff));
+    }
 
-        float bx = x1 + radius;
-        float bw = (x2 - x1) - radius * 2F;
+    @Redirect(
+        method = "render",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;textShadow(Ljava/lang/String;FFI)V")
+    )
+    private void refreshedui$flatText(Batcher2D batcher, String label, float x, float y, int color)
+    {
+        batcher.text(label, x, y, color);
+    }
 
-        if (bw < 1F)
-        {
-            bx = x1;
-            bw = x2 - x1;
-        }
-
-        ((IRoundedBatcher) batcher).roundedBox(bx, by, bw, thickness, thickness / 2F, color);
+    @ModifyConstant(method = "render", constant = @Constant(intValue = 0xaaaaaa))
+    private int refreshedui$placeholderColor(int color)
+    {
+        return MaterialField.ON_SURFACE_VARIANT & 0xffffff;
     }
 }

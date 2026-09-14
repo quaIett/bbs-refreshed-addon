@@ -97,11 +97,40 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
     }
 
+    @Unique
+    private static Texture roundedRectMaskInverted;
+
+    /* Separate texture instead of an inverted blend func: vanilla core shaders declare their own blend
+     * state and re-apply it on bind, so a manual blendFunc before drawing does not survive. */
+    @Unique
+    private Texture getRoundedRectMaskInverted()
+    {
+        synchronized (Batcher2D.class)
+        {
+            Texture cached = roundedRectMaskInverted;
+
+            if (cached == null || !cached.isValid())
+            {
+                cached = buildRoundedRectMask(ROUNDED_RECT_MASK_SIZE, true);
+                roundedRectMaskInverted = cached;
+            }
+
+            return cached;
+        }
+    }
+
     /* Single-quadrant mask: outer arc tip (UV 0,0) -> alpha 0, inner corner texel (UV 1,1) -> alpha 1.
      * GL_CLAMP_TO_EDGE is mandatory: edge/center cells sample UV exactly 1.0 and would wrap to alpha 0
      * under the default GL_REPEAT, turning the body semi-transparent. */
     @Unique
     private static Texture buildRoundedRectMask(int size)
+    {
+        return buildRoundedRectMask(size, false);
+    }
+
+    /** {@code inverted}: alpha {@code 1 - mask} — opaque OUTSIDE the arc, used to paint only beyond a curve. */
+    @Unique
+    private static Texture buildRoundedRectMask(int size, boolean inverted)
     {
         Pixels pixels = Pixels.fromSize(size, size);
         ByteBuffer buf = pixels.getBuffer();
@@ -117,7 +146,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
                 float dy = maxR - y;
                 float d = (float) Math.sqrt(dx * dx + dy * dy);
                 float a = Math.max(0F, Math.min(1F, maxR - d + 0.5F));
-                int alpha = Math.round(a * 255F);
+                int alpha = Math.round((inverted ? 1F - a : a) * 255F);
 
                 buf.put((byte) 255);
                 buf.put((byte) 255);
@@ -328,6 +357,97 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         this.context.draw();
     }
 
+    /* emitMaskQuad with everything above cutY dropped. Cells are axis-aligned and V only varies along Y, so
+     * cropping the top edge just interpolates the top UVs toward the bottom ones. */
+    @Unique
+    private static void emitMaskQuadBelow(BufferBuilder b, Matrix4f m,
+        float x0, float y0, float x1, float y1,
+        float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
+        int color, float cutY)
+    {
+        if (cutY >= y1)
+        {
+            return;
+        }
+
+        if (cutY > y0)
+        {
+            float t = (cutY - y0) / (y1 - y0);
+
+            u00 += (u01 - u00) * t;
+            v00 += (v01 - v00) * t;
+            u10 += (u11 - u10) * t;
+            v10 += (v11 - v10) * t;
+            y0 = cutY;
+        }
+
+        emitMaskQuad(b, m, x0, y0, x1, y1, u00, v00, u10, v10, u11, v11, u01, v01, color);
+    }
+
+    @Override
+    public void roundedBoxBottomBand(float x, float y, float w, float h, float radius, float band, int color)
+    {
+        if (w <= 0F || h <= 0F || band <= 0F)
+        {
+            return;
+        }
+
+        float r = clampRoundedRectRadius(w, h, radius);
+        float cut = y + h - Math.min(band, h);
+
+        if (r < ROUNDED_RECT_MIN_RADIUS)
+        {
+            this.box(x, cut, x + w, y + h, color);
+
+            return;
+        }
+
+        float x0 = x;
+        float y0 = y;
+        float x1 = x + w;
+        float y1 = y + h;
+        float xa = x0 + r;
+        float xb = x1 - r;
+        float ya = y0 + r;
+        float yb = y1 - r;
+        boolean hasMidW = xb > xa;
+        boolean hasMidH = yb > ya;
+
+        Texture mask = this.getRoundedRectMask();
+        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        BufferBuilder builder = Tessellator.getInstance().getBuffer();
+
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderTexture(0, mask.id);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+
+        /* Same cells/UVs as emitRoundedSliceMask, each cropped to the band. */
+        emitMaskQuadBelow(builder, matrix4f, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color, cut);
+        emitMaskQuadBelow(builder, matrix4f, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color, cut);
+        emitMaskQuadBelow(builder, matrix4f, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color, cut);
+        emitMaskQuadBelow(builder, matrix4f, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color, cut);
+
+        if (hasMidW)
+        {
+            emitMaskQuadBelow(builder, matrix4f, xa, y0, xb, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(builder, matrix4f, xa, yb, xb, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+        }
+        if (hasMidH)
+        {
+            emitMaskQuadBelow(builder, matrix4f, x0, ya, xa, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(builder, matrix4f, xb, ya, x1, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+        }
+        if (hasMidW && hasMidH)
+        {
+            emitMaskQuadBelow(builder, matrix4f, xa, ya, xb, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+        }
+
+        BufferRenderer.drawWithGlobalProgram(builder.end());
+
+        this.context.draw();
+    }
+
     /**
      * Rounded border with a rounded inset fill, both emitted into one batch. {@code inset} is the
      * border thickness; the inner radius follows the outer one minus the inset.
@@ -373,10 +493,10 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
     /**
      * 1px rounded outline over existing content. The straight edges are plain boxes; the curves use the
-     * rounded-rect mask with an INVERTED blend ({@code src * (1 - maskA) + dst * maskA}): the mask is opaque
-     * inside a silhouette, so the fill lands only outside its curve and existing pixels inside are kept.
-     * Pass 1 (inner rect, border colour) paints the arc band of the ring; pass 2 (outer rect, outside colour)
-     * then cuts everything beyond the outer curve, including the edge boxes' overhang and square children.
+     * INVERTED rounded-rect mask (opaque outside the arc, transparent inside), so with the normal blend the fill
+     * lands only beyond a silhouette's curve and existing pixels inside are kept. Pass 1 (inner rect, border
+     * colour) paints the arc band of the ring; pass 2 (outer rect, outside colour) then cuts everything beyond
+     * the outer curve, including the edge boxes' overhang and square children.
      */
     @Override
     public void roundedOutlineOver(float x, float y, float w, float h, float radius, int borderColor, int outsideColor)
@@ -399,14 +519,13 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
 
         float innerR = clampRoundedRectRadius(w - 2F, h - 2F, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - 1F));
-        Texture mask = this.getRoundedRectMask();
+        Texture mask = this.getRoundedRectMaskInverted();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
         BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         this.context.draw();
 
         RenderSystem.enableBlend();
-        RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.DstFactor.SRC_ALPHA, GlStateManager.SrcFactor.ZERO, GlStateManager.DstFactor.ONE);
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
         builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
@@ -415,8 +534,6 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, Colors.A100 | outsideColor);
 
         BufferRenderer.drawWithGlobalProgram(builder.end());
-
-        RenderSystem.defaultBlendFunc();
     }
 
     /**

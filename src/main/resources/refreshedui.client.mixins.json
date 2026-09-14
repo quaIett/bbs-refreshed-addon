@@ -62,6 +62,7 @@
         "UITexturePainterMixin",
         "UIToggleMixin",
         "UITooltipMixin",
+        "UITextareaMixin",
         "UITrackpadMixin",
         "UITransformMixin"
     ],

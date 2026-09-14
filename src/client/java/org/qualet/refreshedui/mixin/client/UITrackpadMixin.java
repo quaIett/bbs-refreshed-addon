@@ -8,15 +8,19 @@ import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
-import org.qualet.refreshedui.client.ui.RoundedAreas;
+import org.qualet.refreshedui.client.ui.IMaterialFieldHost;
+import org.qualet.refreshedui.client.ui.MaterialField;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
+import mchorse.bbs_mod.ui.framework.UIContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Rounds the trackpad input surface (3.2a) and the +/- arrow side buttons, and swaps the stock
+/** MD3 filled trackpad surface (2026-09-15), rounds the +/- arrow side buttons, and swaps the stock
  *  directional arrows ({@code MOVE_LEFT}/{@code MOVE_RIGHT}) on those buttons for our atlas' real
  *  plus/minus glyphs ({@code ADD}/{@code REMOVE}). */
 @Mixin(UITrackpad.class)
@@ -25,15 +29,41 @@ public abstract class UITrackpadMixin
     @Shadow private Area plusOne;
     @Shadow private Area minusOne;
 
-    /** Main input surface — full rounded box with the hairline field border (design overhaul, 3). */
+    @Unique
+    private UIContext refreshedui$context;
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void refreshedui$captureContext(UIContext context, CallbackInfo ci)
+    {
+        this.refreshedui$context = context;
+    }
+
+    /**
+     * Unfocused input surface — MD3 filled field ({@link MaterialField}), indicator active while dragging.
+     * Drives the inner text box's state, which takes over rendering once the trackpad is focused, so the
+     * animation carries across focus changes.
+     */
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V")
     )
-    private void refreshedui$roundSurface(Area area, Batcher2D batcher, int color)
+    private void refreshedui$materialSurface(Area area, Batcher2D batcher, int color)
     {
-        RoundedAreas.renderField(area, batcher, color, UICornerRadii.buttonsAndTrackpads());
+        UITrackpad self = (UITrackpad) (Object) this;
+        boolean dragging = self.isDraggingTime();
+        boolean hovered = !dragging && self.isEnabled() && area.isInside(this.refreshedui$context);
+        MaterialField.State state = ((IMaterialFieldHost) self.textbox).refreshedui$fieldState();
+
+        MaterialField.render(batcher, area, UICornerRadii.buttonsAndTrackpads(), state, hovered, dragging);
     }
+
+    /** Stock focused accent (ordinal 0) — the focused text box already draws the MD3 indicator. */
+    @Redirect(
+        method = "render",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V", ordinal = 0)
+    )
+    private void refreshedui$dropAccent(Batcher2D batcher, float x1, float y1, float x2, float y2, int color)
+    {}
 
     /**
      * Side arrow buttons ({@code plusOne}/{@code minusOne}). They sit flush with the surface's left

@@ -40,6 +40,13 @@ public interface IRoundedBatcher
     void roundedBoxCorners(float x, float y, float w, float h, float radius, int color,
         boolean roundTopLeft, boolean roundTopRight, boolean roundBottomRight, boolean roundBottomLeft);
 
+    /**
+     * Only the bottom {@code band} px of a rounded rectangle — the rect's own silhouette clipped to its last
+     * rows, so a thin line hugs the bottom corners' curve (CSS {@code overflow:hidden} underline). Matrix-safe
+     * (no scissor) and anti-aliased at fractional band heights. (MD3 text field indicator, 2026-09-15)
+     */
+    void roundedBoxBottomBand(float x, float y, float w, float h, float radius, float band, int color);
+
     /** Filled circle (single color) sampling a procedural circular SDF mask. {@code segments} is ignored. */
     void filledCircle(float cx, float cy, float radius, int color, int segments);
 
