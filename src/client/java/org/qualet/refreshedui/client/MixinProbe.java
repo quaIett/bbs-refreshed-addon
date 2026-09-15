@@ -59,6 +59,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.framework.elements.buttons.UIToggle",
         "mchorse.bbs_mod.ui.framework.elements.context.UIActionList",
         "mchorse.bbs_mod.ui.framework.elements.context.UIContextMenu",
+        "mchorse.bbs_mod.ui.framework.elements.context.UISimpleContextMenu",
         "mchorse.bbs_mod.ui.framework.elements.input.UIColor",
         "mchorse.bbs_mod.ui.framework.elements.input.UINumericInput",
         "mchorse.bbs_mod.ui.framework.elements.input.UIPropTransform",

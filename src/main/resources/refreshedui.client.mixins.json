@@ -23,6 +23,7 @@
         "UIColorMixin",
         "UIColorPickerMixin",
         "UIContextMenuMixin",
+        "UISimpleContextMenuMixin",
         "UIDashboardPanelsMixin",
         "UIDockLayoutMixin",
         "UIDockLayoutTabsMixin",

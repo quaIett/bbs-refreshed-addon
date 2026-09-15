@@ -114,6 +114,19 @@ public final class RoundedAreas
         ((IRoundedBatcher) batcher).roundedBoxCorners(x, y, w, h, radius, color, roundTop, roundTop, roundBottom, roundBottom);
     }
 
+    /**
+     * Neutral hover wash for a context-menu row: a plain rounded grey, no stroke and no colour, so the
+     * cursor is a hint and never competes with a row's own tint (icon) or an active toggle's frame. Same
+     * tone family as {@code MaterialField}'s hover so surfaces agree.
+     */
+    public static void renderMenuHover(Batcher2D batcher, float x, float y, float w, float h, float radius)
+    {
+        ((IRoundedBatcher) batcher).roundedBox(x, y, w, h, radius, Colors.setA(MENU_HOVER_RGB, MENU_HOVER_ALPHA));
+    }
+
+    private static final int MENU_HOVER_RGB = 0xe8e8e8;
+    private static final float MENU_HOVER_ALPHA = 0.12F;
+
     /** Selection-frame stroke thickness, px. */
     private static final float SELECTION_BORDER_INSET = 1.5F;
     /** Interior fill brightness vs the stroke colour — muted/darker per the design mockup. */
