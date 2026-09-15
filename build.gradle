@@ -2,24 +2,12 @@ plugins {
 	id 'fabric-loom' version '1.15-SNAPSHOT'
 }
 
-// --- Multi-version build: one source tree, MC 1.20.1 / 1.20.4 ---
-// The source is byte-identical for MC 1.20.1 and 1.20.4 — only the toolchain
-// (yarn mappings, fabric-api, BBS dep jar) and the manifest pin differ.
-// Pick the target per build:
-//   ./gradlew build                 -> MC 1.20.1 (default)
-//   ./gradlew build -Pmc=1.20.4     -> MC 1.20.4
-//   ./gradlew build -Pmc=universal  -> single jar pinned >=1.20.1 <=1.20.4
-// The "universal" jar is built against the 1.20.1 toolchain (lowest common
-// members) and ships in Fabric intermediary mappings, so it loads on either
-// 1.20.1 or 1.20.4 as long as every vanilla member it touches is unchanged
-// between them (it is — render + font are the only vanilla touches).
-def mc = (project.findProperty("mc") ?: "1.20.1").toString()
+// --- Branch fs-2.6-1.21.1: BBS 2.6 on MC 1.21.1 (Java 21) ---
+// The 1.20.x targets live on fs-2.6; this branch differs from it only by the
+// MC 1.21 render API (BufferBuilder/PostEffectPass/Identifier) and this config.
+def mc = (project.findProperty("mc") ?: "1.21.1-fs").toString()
 def MC = [
-	"1.20.1"   : [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.4-1.20.1.jar", pin: "1.20.1"            , suffix: "1.20.1"],
-	"1.20.4"   : [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.4-npc-1.20.4.jar", pin: "1.20.4"         , suffix: "npc-1.20.4"],
-	"1.20.4-fs": [mc: "1.20.4", yarn: "1.20.4+build.1" , fabric: "0.91.1+1.20.4", bbs: "bbs-2.6-1.20.4.jar"  , pin: "1.20.4"         , suffix: "fs2.6-1.20.4"],
-	"1.20.1-fs": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.6-1.20.1.jar"  , pin: "1.20.1"         , suffix: "fs2.6-1.20.1"],
-	"universal": [mc: "1.20.1", yarn: "1.20.1+build.10", fabric: "0.92.1+1.20.1", bbs: "bbs-2.4-1.20.1.jar", pin: ">=1.20.1 <=1.20.4", suffix: "1.20.x"],
+	"1.21.1-fs": [mc: "1.21.1", yarn: "1.21.1+build.3", fabric: "0.116.12+1.21.1", bbs: "bbs-2.6-1.21.1.jar", pin: "1.21.1", suffix: "fs2.6-1.21.1"],
 ]
 if (!MC.containsKey(mc)) {
 	throw new GradleException("Unsupported -Pmc=${mc}. Supported: ${MC.keySet().join(', ')}")
@@ -72,13 +60,13 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 17
+	it.options.release = 21
 }
 
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {

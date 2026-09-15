@@ -11,6 +11,7 @@ import mchorse.bbs_mod.utils.resources.Pixels;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.BuiltBuffer;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
@@ -176,12 +177,12 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
         int color)
     {
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color).next();
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color).next();
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color).next();
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color).next();
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
+        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
+        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color);
     }
 
     /* Emit one rounded-rect silhouette as up to 9 mask-sampled quads into the caller's active
@@ -343,16 +344,15 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMask(builder, matrix4f, x, y, w, h, r, color);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -415,12 +415,11 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         /* Same cells/UVs as emitRoundedSliceMask, each cropped to the band. */
         emitMaskQuadBelow(builder, matrix4f, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color, cut);
@@ -443,7 +442,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             emitMaskQuadBelow(builder, matrix4f, xa, ya, xb, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
         }
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -476,17 +475,16 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float innerR = clampRoundedRectRadius(innerW, innerH, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - inset));
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, borderColor);
         emitRoundedSliceMask(builder, matrix4f, innerX, innerY, innerW, innerH, innerR, fillColor);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -521,19 +519,18 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float innerR = clampRoundedRectRadius(w - 2F, h - 2F, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - 1F));
         Texture mask = this.getRoundedRectMaskInverted();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         this.context.draw();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMask(builder, matrix4f, x + 1F, y + 1F, w - 2F, h - 2F, innerR, Colors.A100 | borderColor);
         emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, Colors.A100 | outsideColor);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
     }
 
     /**
@@ -566,16 +563,15 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMaskSides(builder, matrix4f, x, y, w, h, r, color, roundLeft, roundRight);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -611,16 +607,15 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMaskCorners(builder, matrix4f, x, y, w, h, r, color, roundTopLeft, roundTopRight, roundBottomRight, roundBottomLeft);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -634,12 +629,12 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
         int c00, int c10, int c11, int c01)
     {
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01).next();
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(c11).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10).next();
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10).next();
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(c00).next();
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01);
+        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(c11);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10);
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10);
+        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(c00);
     }
 
     /* Horizontal alpha-ramp variant of emitRoundedSliceMask: color depends on x only, so we
@@ -731,16 +726,15 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getRoundedRectMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         emitRoundedSliceMaskGradH(builder, matrix4f, x, y, w, h, r, x, w, cr, cg, cb, endAlpha);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -793,12 +787,11 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float tileH = icon.h;
 
         Matrix4f matrix = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
         RenderSystem.setShaderTexture(0, texture.id);
 
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
         for (float yy = ry; yy < y2; )
         {
@@ -833,7 +826,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
 
         RenderSystem.enableBlend();
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }
@@ -887,12 +880,12 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float u11 = checkboardU(icon, x1, ox), v11 = checkboardV(icon, y1, oy);
         float u01 = checkboardU(icon, x0, ox), v01 = checkboardV(icon, y1, oy);
 
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color).next();
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color).next();
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color).next();
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color).next();
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color).next();
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
+        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
+        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
+        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
+        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color);
     }
 
     /**
@@ -954,10 +947,9 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
 
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
         emitRoundedCornersMask(builder, matrix4f, x, y, w, h, r, Colors.WHITE);
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
         this.context.draw();
 
         /* Pass 2: multiply icon RGB into the stamped corner pixels; preserve alpha from pass 1. */
@@ -967,10 +959,9 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         RenderSystem.setShaderTexture(0, texture.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
 
-        builder = Tessellator.getInstance().getBuffer();
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
         emitRoundedCornersChecker(builder, matrix4f, x, y, w, h, r, icon, x, y, color);
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
         this.context.draw();
 
         RenderSystem.defaultBlendFunc();
@@ -1067,7 +1058,6 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         Texture mask = this.getFilledCircleMask();
         Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
 
         float x0 = cx - radius;
         float y0 = cy - radius;
@@ -1077,16 +1067,16 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, mask.id);
         RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
 
-        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color).next();
-        builder.vertex(matrix4f, x1, y1, 0F).texture(1F, 1F).color(color).next();
-        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color).next();
-        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color).next();
-        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color).next();
-        builder.vertex(matrix4f, x0, y0, 0F).texture(0F, 0F).color(color).next();
+        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color);
+        builder.vertex(matrix4f, x1, y1, 0F).texture(1F, 1F).color(color);
+        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color);
+        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color);
+        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color);
+        builder.vertex(matrix4f, x0, y0, 0F).texture(0F, 0F).color(color);
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         this.context.draw();
     }

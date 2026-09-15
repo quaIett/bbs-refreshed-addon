@@ -24,7 +24,7 @@ import java.util.function.Function;
  */
 public final class RefreshedFont
 {
-    public static final Identifier FONT_ID = new Identifier("refreshedui", "default");
+    public static final Identifier FONT_ID = Identifier.of("refreshedui", "default");
 
     private static TextRenderer renderer;
 

@@ -15,6 +15,7 @@ import mchorse.bbs_mod.ui.framework.elements.utils.StencilMap;
 import mchorse.bbs_mod.utils.MathUtils;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BufferRenderer;
+import net.minecraft.client.render.BuiltBuffer;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
@@ -160,8 +161,7 @@ public abstract class ModelIKDebugMixin
             stack.multiply(RotationAxis.POSITIVE_Y.rotation(MathUtils.PI));
         }
 
-        BufferBuilder dots = Tessellator.getInstance().getBuffer();
-        dots.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
+        BufferBuilder dots = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
 
         for (IKControllerMarker marker : markers)
         {
@@ -174,7 +174,7 @@ public abstract class ModelIKDebugMixin
             stack.pop();
         }
 
-        BufferRenderer.drawWithGlobalProgram(dots.end());
+        { BuiltBuffer built = dots.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         stack.pop();
 
@@ -218,8 +218,7 @@ public abstract class ModelIKDebugMixin
             stack.multiply(RotationAxis.POSITIVE_Y.rotation(MathUtils.PI));
         }
 
-        BufferBuilder builder = Tessellator.getInstance().getBuffer();
-        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
+        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
 
         for (IKControllerMarker marker : markers)
         {
@@ -232,7 +231,7 @@ public abstract class ModelIKDebugMixin
             stencilMap.addPicking(form, marker.bone);
         }
 
-        BufferRenderer.drawWithGlobalProgram(builder.end());
+        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
 
         stack.pop();
 

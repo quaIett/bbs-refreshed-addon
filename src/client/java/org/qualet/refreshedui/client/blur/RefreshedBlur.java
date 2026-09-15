@@ -308,7 +308,8 @@ public final class RefreshedBlur
 
     private static PostEffectPass pass(MinecraftClient mc, String program, Framebuffer input, Framebuffer output) throws Exception
     {
-        PostEffectPass pass = new PostEffectPass(mc.getResourceManager(), program, input, output);
+        /* Since 1.21.1 the pass takes its input filter explicitly; Kawase taps need linear */
+        PostEffectPass pass = new PostEffectPass(mc.getResourceManager(), program, input, output, true);
 
         pass.setProjectionMatrix(new Matrix4f().setOrtho(0F, output.textureWidth, 0F, output.textureHeight, 0.1F, 1000F));
 
