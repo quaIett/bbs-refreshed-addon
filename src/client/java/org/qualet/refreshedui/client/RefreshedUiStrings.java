@@ -43,8 +43,8 @@ public class RefreshedUiStrings
             "Если включено, размытие за панелями использует алгоритм dual Kawase: более плавный и мягкий вид за малую часть стоимости, так как почти вся работа идёт на уменьшенных копиях экрана. «Размытие за панелями» и «Радиус размытия» по-прежнему решают, включено ли оно и насколько сильное. Выключите, чтобы вернуть исходное box-размытие BBS.", ru);
         set(l10n, "grey_clips", "Grey clips", "Серые клипы", ru);
         set(l10n, "grey_clips-comment",
-            "When enabled, clips on the camera and action timelines get a neutral grey fill and their type colour moves to the outline. Disable to restore BBS's coloured fills.",
-            "Если включено, клипы на таймлайнах камеры и действий получают нейтральную серую заливку, а цвет их типа переходит в обводку. Выключите, чтобы вернуть цветные заливки BBS.", ru);
+            "When enabled, clips on the camera and action timelines get a neutral grey fill and their type colour moves to the outline; hovered and selected clips light up instead of getting a white frame. Disable to restore BBS's coloured fills.",
+            "Если включено, клипы на таймлайнах камеры и действий получают нейтральную серую заливку, а цвет их типа переходит в обводку; при наведении и выделении клип светлеет вместо белой рамки. Выключите, чтобы вернуть цветные заливки BBS.", ru);
 
         setKey(l10n, "refreshedui.caxton_notice.title", "Heads up!", "Внимание!", ru);
         setKey(l10n, "refreshedui.caxton_notice.body",

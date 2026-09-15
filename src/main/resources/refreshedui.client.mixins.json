@@ -19,6 +19,7 @@
         "UICirculateMixin",
         "UIClipMixin",
         "UIClipRendererMixin",
+        "UIClipsMixin",
         "UIColorMixin",
         "UIColorPickerMixin",
         "UIContextMenuMixin",
