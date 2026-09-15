@@ -5,11 +5,16 @@ import mchorse.bbs_mod.settings.SettingsBuilder;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
+import org.qualet.refreshedui.LockedValueBoolean;
 import org.qualet.refreshedui.RefreshedUiAddon;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.Set;
 
 /**
  * Registers the addon's appearance settings inside BBS's own <b>personalization</b> category as a
@@ -52,4 +57,30 @@ public abstract class BBSSettingsMixin
         RefreshedUiAddon.refreshedBlur = refreshedBlur;
         RefreshedUiAddon.refreshedGroup = group;
     }
+
+    /**
+     * Pins BBS 2.6's personalization "Shadows", "Highlights" and "Glow" off: they are registered as
+     * {@link LockedValueBoolean} so every reader (Batcher2D bevel, dock inset shadow, dropShadow glow)
+     * sees false and the settings toggle is locked.
+     */
+    @Redirect(
+        method = "register",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/settings/SettingsBuilder;getBoolean(Ljava/lang/String;Z)Lmchorse/bbs_mod/settings/values/numeric/ValueBoolean;")
+    )
+    private static ValueBoolean refreshedui$lockInterfaceDepth(SettingsBuilder builder, String id, boolean defaultValue)
+    {
+        if (!refreshedui$LOCKED.contains(id) || !"personalization".equals(builder.getCategory().getId()))
+        {
+            return builder.getBoolean(id, defaultValue);
+        }
+
+        ValueBoolean value = new LockedValueBoolean(id);
+
+        builder.register(value);
+
+        return value;
+    }
+
+    @Unique
+    private static final Set<String> refreshedui$LOCKED = Set.of("interface_shadows", "interface_highlights", "interface_glow");
 }

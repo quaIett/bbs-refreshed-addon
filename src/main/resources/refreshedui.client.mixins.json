@@ -64,7 +64,8 @@
         "UITooltipMixin",
         "UITextareaMixin",
         "UITrackpadMixin",
-        "UITransformMixin"
+        "UITransformMixin",
+        "UIValueFactoryMixin"
     ],
     "injectors": {
         "defaultRequire": 1
