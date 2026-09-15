@@ -91,6 +91,30 @@ public final class RoundedAreas
     }
 
     /**
+     * Horizontal counterpart of {@link #roundedBoxVertical}: a member of a ROW run rounds only the group's
+     * outer corners ({@code roundLeft} for the first cell, {@code roundRight} for the last), so adjacent
+     * active cells of an icon strip draw as one block instead of a row of separate pills.
+     */
+    public static void roundedBoxHorizontal(Batcher2D batcher, float x, float y, float w, float h, float radius, int color, boolean roundLeft, boolean roundRight)
+    {
+        ((IRoundedBatcher) batcher).roundedBoxCorners(x, y, w, h, radius, color, roundLeft, roundRight, roundRight, roundLeft);
+    }
+
+    /**
+     * Fill of the engine selection mark ({@code Batcher2D.highlight}) in our style. Accent-coloured marks (the
+     * "this one is active" case) get the full-strength primary the adaptive contrast icons are tuned for;
+     * marks in a colour of their own ({@code Colors.NEGATIVE} on destructive verb-strip buttons) are standing
+     * hints on several buttons at once, so they get a soft translucent fill instead.
+     */
+    public static int highlightFill(int color)
+    {
+        int rgb = color & Colors.RGB;
+        boolean accent = rgb == (BBSSettings.primaryColor.get() & Colors.RGB);
+
+        return accent ? Colors.A100 | rgb : Colors.A25 | rgb;
+    }
+
+    /**
      * Neutral hover wash for a context-menu row: a plain rounded grey, no stroke and no colour, so the
      * cursor is a hint and never competes with a row's own tint (icon) or an active toggle's frame. Same
      * tone family as {@code MaterialField}'s hover so surfaces agree.

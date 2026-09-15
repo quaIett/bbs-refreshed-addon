@@ -1,10 +1,8 @@
 package org.qualet.refreshedui.mixin.client;
 
-import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.Direction;
-import mchorse.bbs_mod.utils.colors.Colors;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,19 +18,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * {@code UITabStrip} active-edge tabs, {@code UIIconStrip}, the form editor / bone picker area marks and the
  * context-menu verb strip all end up here (the 2-arg overload delegates to this one with the primary colour),
  * so one HEAD inject still covers every call site. Edge direction is intentionally ignored: our mark is a
- * uniform rounded pill, not an edge bar.</p>
+ * uniform rounded pill, not an edge bar. Fill colour rules live in {@link RoundedAreas#highlightFill}.</p>
  *
  * <p>Kept separate from {@code Batcher2DMixin} (the primitives) since this is a consumer restyle.</p>
  */
 @Mixin(Batcher2D.class)
 public abstract class Batcher2DHighlightMixin
 {
-    /**
-     * Accent-coloured marks (the "this one is active" case) get the full-strength primary fill the adaptive
-     * contrast icons are tuned for. Marks in a colour of their own ({@code Colors.NEGATIVE} on destructive
-     * verb-strip buttons) are standing hints on several buttons at once, so they get a soft translucent pill
-     * rather than a loud solid one.
-     */
     @Inject(
         method = "highlight(Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/utils/Direction;I)V",
         at = @At("HEAD"),
@@ -40,11 +32,7 @@ public abstract class Batcher2DHighlightMixin
     )
     private void refreshedui$roundHighlight(Area area, Direction edge, int color, CallbackInfo ci)
     {
-        int rgb = color & Colors.RGB;
-        boolean accent = rgb == (BBSSettings.primaryColor.get() & Colors.RGB);
-        int fill = accent ? Colors.A100 | rgb : Colors.A25 | rgb;
-
-        RoundedAreas.renderRounded(area, (Batcher2D) (Object) this, fill, UICornerRadii.buttonsAndTrackpads());
+        RoundedAreas.renderRounded(area, (Batcher2D) (Object) this, RoundedAreas.highlightFill(color), UICornerRadii.buttonsAndTrackpads());
         ci.cancel();
     }
 }
