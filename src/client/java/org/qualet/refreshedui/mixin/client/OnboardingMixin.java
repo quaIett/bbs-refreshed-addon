@@ -5,6 +5,7 @@ import mchorse.bbs_mod.ui.dashboard.UIDashboard;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.onboarding.Onboarding;
 import mchorse.bbs_mod.ui.onboarding.TourChapter;
+import org.qualet.refreshedui.client.ui.CaxtonNotice;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,6 +38,7 @@ public abstract class OnboardingMixin
             BBSSettings.onboardingWelcomeSeen.set(true);
         }
 
+        CaxtonNotice.maybeShow(dashboard.context);
         ci.cancel();
     }
 

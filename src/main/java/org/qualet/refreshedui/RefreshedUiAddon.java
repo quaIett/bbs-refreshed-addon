@@ -35,6 +35,10 @@ public class RefreshedUiAddon implements BBSAddonMod
      *  Default true. Read via {@code UIClipRendererMixin}. */
     public static ValueBoolean greyClips;
 
+    /** Hidden: the user picked "don't show again" on the Caxton recommendation dialog. Default false.
+     *  Read via {@code client.ui.CaxtonNotice}. */
+    public static ValueBoolean caxtonNoticeDismissed;
+
     /** Nested "refreshed" group under personalization holding the settings above. */
     public static ValueGroup refreshedGroup;
 
