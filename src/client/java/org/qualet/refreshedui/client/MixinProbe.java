@@ -40,6 +40,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.film.UIFilmPanel",
         "mchorse.bbs_mod.ui.film.UIFilmPlayerSettingsOverlayPanel",
         "mchorse.bbs_mod.ui.film.UIFilmPreview",
+        "mchorse.bbs_mod.ui.film.UIClips",
         "mchorse.bbs_mod.ui.film.clips.UIClip",
         "mchorse.bbs_mod.ui.film.clips.renderer.UIClipRenderer",
         "mchorse.bbs_mod.ui.film.replays.UIReplayPropertiesPanel",
