@@ -27,11 +27,6 @@ public class RefreshedUiAddon implements BBSAddonMod
      *  Default true. Read via {@code client.ui.UISliderTrackpadAdapter}. */
     public static ValueBoolean alternativeTrackpads;
 
-    /** When on, the IK debug overlay shows only markers on {@code controller_*} target bones (the
-     *  reworked minimal overlay); when off, BBS's stock full chain overlay renders. Default true.
-     *  Read via {@code mixin.client.ModelIKDebugMixin}. */
-    public static ValueBoolean ikControllerOverlay;
-
     /** When on, BBS's blur behind overlay panels runs as dual Kawase instead of its box blur; BBS's own
      *  on/off and radius settings still apply. Default true. Read via {@code client.blur.RefreshedBlur}. */
     public static ValueBoolean refreshedBlur;

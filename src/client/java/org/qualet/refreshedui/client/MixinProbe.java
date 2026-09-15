@@ -33,7 +33,6 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.dashboard.panels.landing.UILandingScreen",
         "mchorse.bbs_mod.ui.framework.elements.utils.RowStyle",
         "mchorse.bbs_mod.ui.onboarding.Onboarding",
-        "mchorse.bbs_mod.cubic.ik.ModelIKDebug",
         "mchorse.bbs_mod.settings.ui.UISettingsOverlayPanel",
         "mchorse.bbs_mod.ui.dashboard.panels.UIDashboardPanels",
         "mchorse.bbs_mod.ui.dashboard.textures.UITexturePainter",
