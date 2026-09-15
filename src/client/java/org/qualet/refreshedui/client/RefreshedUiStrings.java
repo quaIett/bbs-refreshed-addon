@@ -45,6 +45,13 @@ public class RefreshedUiStrings
         set(l10n, "grey_clips-comment",
             "When enabled, clips on the camera and action timelines get a neutral grey fill and their type colour moves to the outline. Disable to restore BBS's coloured fills.",
             "Если включено, клипы на таймлайнах камеры и действий получают нейтральную серую заливку, а цвет их типа переходит в обводку. Выключите, чтобы вернуть цветные заливки BBS.", ru);
+
+        setKey(l10n, "refreshedui.caxton_notice.title", "Heads up!", "Внимание!", ru);
+        setKey(l10n, "refreshedui.caxton_notice.body",
+            "BBS Refreshed looks much better with the Caxton mod: the design was built around a smooth font, not the pixel one. I recommend installing it.",
+            "BBS Refreshed выглядит намного лучше с модом Caxton: дизайн изначально проектировался под гладкий шрифт, а не под пиксельный. Рекомендую его установить.", ru);
+        setKey(l10n, "refreshedui.caxton_notice.link", "Download Caxton", "Скачать Caxton", ru);
+        setKey(l10n, "refreshedui.caxton_notice.dismiss", "Don't show again", "Больше не показывать", ru);
     }
 
     private static void set(L10n l10n, String suffix, String en, String ru, boolean useRu)

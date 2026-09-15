@@ -97,6 +97,11 @@ public abstract class UISettingsOverlayPanelMixin
 
         for (var value : group.getAll())
         {
+            if (!value.isVisible())
+            {
+                continue;
+            }
+
             for (UIElement element : UIValueMap.create(value, (UIElement) (Object) this))
             {
                 this.options.add(element);
