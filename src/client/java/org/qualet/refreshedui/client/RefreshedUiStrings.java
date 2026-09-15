@@ -41,6 +41,10 @@ public class RefreshedUiStrings
         set(l10n, "refreshed_blur-comment",
             "When enabled, the blur behind panels uses the dual Kawase algorithm: a smoother, softer look for a fraction of the cost, since most of the work happens on downscaled copies of the screen. \"Blur behind panels\" and \"Blur radius\" still decide whether it runs and how strong it is. Disable to use BBS's original box blur.",
             "Если включено, размытие за панелями использует алгоритм dual Kawase: более плавный и мягкий вид за малую часть стоимости, так как почти вся работа идёт на уменьшенных копиях экрана. «Размытие за панелями» и «Радиус размытия» по-прежнему решают, включено ли оно и насколько сильное. Выключите, чтобы вернуть исходное box-размытие BBS.", ru);
+        set(l10n, "grey_clips", "Grey clips", "Серые клипы", ru);
+        set(l10n, "grey_clips-comment",
+            "When enabled, clips on the camera and action timelines get a neutral grey fill and their type colour moves to the outline. Disable to restore BBS's coloured fills.",
+            "Если включено, клипы на таймлайнах камеры и действий получают нейтральную серую заливку, а цвет их типа переходит в обводку. Выключите, чтобы вернуть цветные заливки BBS.", ru);
     }
 
     private static void set(L10n l10n, String suffix, String en, String ru, boolean useRu)

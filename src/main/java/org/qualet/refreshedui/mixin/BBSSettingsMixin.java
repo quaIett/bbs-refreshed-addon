@@ -41,6 +41,7 @@ public abstract class BBSSettingsMixin
         ValueBoolean animations = new ValueBoolean("animations", true);
         ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
         ValueBoolean refreshedBlur = new ValueBoolean("refreshed_blur", true);
+        ValueBoolean greyClips = new ValueBoolean("grey_clips", true);
 
         ValueGroup group = new ValueGroup("refreshed");
         group.icon = Icons.GEAR;
@@ -48,6 +49,7 @@ public abstract class BBSSettingsMixin
         group.add(animations);
         group.add(alternativeTrackpads);
         group.add(refreshedBlur);
+        group.add(greyClips);
 
         builder.getCategory().add(group);
 
@@ -55,6 +57,7 @@ public abstract class BBSSettingsMixin
         RefreshedUiAddon.animations = animations;
         RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;
         RefreshedUiAddon.refreshedBlur = refreshedBlur;
+        RefreshedUiAddon.greyClips = greyClips;
         RefreshedUiAddon.refreshedGroup = group;
     }
 
