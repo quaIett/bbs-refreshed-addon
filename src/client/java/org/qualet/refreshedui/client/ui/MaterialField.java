@@ -23,7 +23,8 @@ public final class MaterialField
      * editors, chrome bars, raised overlays/sections), so no single colour is "a touch lighter than what's
      * behind" everywhere. A faint white wash is — on any surface and any secondary colour (black on light UIs).
      */
-    private static final float CONTAINER_ALPHA = 0.11F;
+    /* 26/255: alpha is 8-bit and truncated (Color.getARGBColor), so 10% = 25, 10.4% = 26, 10.6% = 27, 11% = 28. */
+    private static final float CONTAINER_ALPHA = 0.104F;
     /** MD3 state layer: on-surface at 8%. */
     private static final int HOVER_RGB = 0xe8e8e8;
     private static final float HOVER_ALPHA = 0.08F;
