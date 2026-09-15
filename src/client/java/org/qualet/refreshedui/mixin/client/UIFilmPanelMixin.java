@@ -6,12 +6,10 @@ import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
-import org.qualet.refreshedui.client.anim.PanelTransitions;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -29,11 +27,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(UIFilmPanel.class)
 public abstract class UIFilmPanelMixin
 {
-    @Shadow private UIElement selectedMainEditorPanel;
-
-    /** Captured before showPanel mutates {@code selectedMainEditorPanel}. */
-    private UIElement refreshedui$panelBefore;
-
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V", ordinal = 0)
@@ -63,32 +56,6 @@ public abstract class UIFilmPanelMixin
         if (button != null)
         {
             button.active(editor != null && editor.isVisible()).activeColor(UIContrastColor.onPrimary());
-        }
-    }
-
-    /**
-     * Capture the current panel before showPanel mutates selectedMainEditorPanel, so the TAIL inject
-     * can skip the animation when the panel did not actually change (e.g. Ctrl+Z/Y calls applyUndoData
-     * which calls showPanel with the same panel index every time).
-     */
-    @Inject(method = "showPanel(Lmchorse/bbs_mod/ui/framework/elements/UIElement;)V", at = @At("HEAD"))
-    private void refreshedui$capturePanel(UIElement element, CallbackInfo ci)
-    {
-        this.refreshedui$panelBefore = this.selectedMainEditorPanel;
-    }
-
-    /**
-     * Switching Film sub-editors (camera / replays / actions) arms the appear reveal. The root is the whole
-     * Film panel ({@code this}) rather than the selected editor element, because the editor's properties /
-     * replays panels are docked under {@code main} as siblings — not nested inside the editor — so only the
-     * panel-wide subtree captures all of the new editor's text (see {@link PanelTransitions}).
-     */
-    @Inject(method = "showPanel(Lmchorse/bbs_mod/ui/framework/elements/UIElement;)V", at = @At("TAIL"))
-    private void refreshedui$animateEditorAppear(UIElement element, CallbackInfo ci)
-    {
-        if (this.selectedMainEditorPanel != this.refreshedui$panelBefore)
-        {
-            PanelTransitions.onPanelAppear((UIElement) (Object) this);
         }
     }
 }
