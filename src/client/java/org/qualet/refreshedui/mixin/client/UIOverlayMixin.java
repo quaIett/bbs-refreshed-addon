@@ -31,6 +31,7 @@ import java.util.Map;
 public abstract class UIOverlayMixin
 {
     @Shadow @Final private static Map<String, Vector2i> offsets;
+    @Shadow @Final private static Map<String, Vector2i> sizes;
 
     @Inject(method = "setupPanel", at = @At("TAIL"))
     private static void refreshedui$armReveal(UIContext context, UIOverlay overlay, UIOverlayPanel panel, CallbackInfo ci)
@@ -40,10 +41,10 @@ public abstract class UIOverlayMixin
 
     /**
      * Play a close animation instead of detaching the overlay at once. Runs {@code closeItself}'s logic now
-     * — click sound, panel close events, remembered drag offset — but keeps the overlay in the tree and
-     * arms a reverse reveal; {@link OverlayReveal#finishClosed} detaches it once the slide-down + fade-out
-     * finishes. With animations off, the original instant detach runs unchanged. A repeat close while the
-     * animation plays is swallowed (the panel is already on its way out).
+     * — click sound, panel close events, remembered drag offset and (if the user sized it) size — but keeps
+     * the overlay in the tree and arms a reverse reveal; {@link OverlayReveal#finishClosed} detaches it once
+     * the slide-down + fade-out finishes. With animations off, the original instant detach runs unchanged. A
+     * repeat close while the animation plays is swallowed (the panel is already on its way out).
      */
     @Inject(method = "closeItself", at = @At("HEAD"), cancellable = true)
     private void refreshedui$animateClose(CallbackInfo ci)
@@ -66,8 +67,15 @@ public abstract class UIOverlayMixin
 
         for (UIOverlayPanel panel : self.getChildren(UIOverlayPanel.class))
         {
+            String key = panel.getClass().getSimpleName();
+
             panel.onClose();
-            offsets.put(panel.getClass().getSimpleName(), new Vector2i(panel.getFlex().x.offset, panel.getFlex().y.offset));
+            offsets.put(key, new Vector2i(panel.getFlex().x.offset, panel.getFlex().y.offset));
+
+            if (panel.wasResized())
+            {
+                sizes.put(key, new Vector2i(panel.getFlex().w.offset, panel.getFlex().h.offset));
+            }
         }
 
         OverlayReveal.armClose(self);

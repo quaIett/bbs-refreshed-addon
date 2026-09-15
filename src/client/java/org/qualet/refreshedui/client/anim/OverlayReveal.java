@@ -18,7 +18,8 @@ import java.util.Map;
  *
  * <p>Both directions reduce to one {@link #visibility} value (0 hidden &rarr; 1 shown for appear, 1 &rarr;
  * 0 for close); the panel slide+fade and backdrop fade are the same math either way. The slide is a matrix
- * translate and the fade is the global shader colour (see {@code UIOverlayPanelMixin} / {@code UIOverlayMixin}).</p>
+ * translate; the panel fade composites the panel through {@link OverlaySnapshot} (see
+ * {@code UIOverlayPanelMixin}), the backdrop fade scales its colour's alpha (see {@code UIOverlayMixin}).</p>
  *
  * <p><b>Close defers the detach.</b> BBS {@code UIOverlay.closeItself} removes the overlay from the tree at
  * once, leaving nothing to animate. Instead the close logic runs immediately but the overlay is kept in the
@@ -42,34 +43,8 @@ public final class OverlayReveal
      */
     private static final Map<UIElement, Reveal> active = new IdentityHashMap<>();
 
-    /**
-     * Alpha to apply to icon draws while rendering inside an animating overlay panel (1 = no fade). Icons do
-     * <em>not</em> honour the panel's shader-colour fade in BBS's textured draw path (unlike boxes and text),
-     * so they are faded explicitly via their vertex colour — {@code Batcher2DIconFilterMixin} multiplies the
-     * icon colour by this while {@code UIOverlayPanelMixin} has it set for the panel currently rendering.
-     */
-    private static float iconAlpha = 1F;
-
     private OverlayReveal()
     {}
-
-    /** Begin fading icons drawn by the overlay panel now rendering to {@code alpha}. Paired with {@link #endIconFade}. */
-    public static void beginIconFade(float alpha)
-    {
-        iconAlpha = alpha;
-    }
-
-    /** Stop fading icons (back to opaque) once the overlay panel has finished rendering. */
-    public static void endIconFade()
-    {
-        iconAlpha = 1F;
-    }
-
-    /** Current icon fade alpha (1 = no fade); see {@link #iconAlpha}. */
-    public static float iconAlpha()
-    {
-        return iconAlpha;
-    }
 
     /** Arm an appear reveal shared by an overlay and its panel. No-op while animations are disabled. */
     public static void arm(UIElement overlay, UIElement panel)
