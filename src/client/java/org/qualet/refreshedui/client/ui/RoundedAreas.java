@@ -43,30 +43,6 @@ public final class RoundedAreas
     }
 
     /**
-     * Input-field surface (design overhaul, stage 3): a rounded fill with a subtle theme-aware border —
-     * the dark inset look from the mockup.
-     *
-     * <p>Drawn as TWO {@code roundedBox} calls (not {@code roundedFrame}): a full-size border box, then the
-     * opaque fill inset on top, leaving the border as a ring. This is deliberate — a 1px {@code roundedFrame}
-     * ring gets eaten by the rounded corners' anti-aliasing (so the border "doesn't render"), and its
-     * small-radius fallback drops the fill entirely. Two plain {@code roundedBox} calls always paint a solid
-     * fill (square fallback included) and give the ring a visible {@value #FIELD_BORDER_INSET}px width.</p>
-     */
-    public static void renderField(Area area, Batcher2D batcher, int fillColor, float radius)
-    {
-        IRoundedBatcher rounded = (IRoundedBatcher) batcher;
-        int border = 0xff33363a;
-        float inset = FIELD_BORDER_INSET;
-
-        rounded.roundedBox(area.x, area.y, area.w, area.h, radius, border);
-        rounded.roundedBox(area.x + inset, area.y + inset, area.w - inset * 2F, area.h - inset * 2F, Math.max(0.5F, radius - inset), fillColor);
-    }
-
-    /** Field border ring thickness — a thin hairline (the fill is always painted, so a faint ring never
-     * loses the field background). */
-    private static final float FIELD_BORDER_INSET = 0.5F;
-
-    /**
      * Selection-frame style for context-menu entries (design pass 2026-06-27): a BRIGHT inner stroke in
      * {@code baseColor} around a MUTED (darkened) interior fill of the same hue — instead of a flat
      * full-strength fill. {@code baseColor}'s hue is kept verbatim (primary for hover entries, the action's

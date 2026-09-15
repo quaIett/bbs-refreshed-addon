@@ -165,10 +165,14 @@ public final class RefreshedSlider
         batcher.filledCircle(handleCenter, area.my(), knobHot ? knobR + 1F : knobR, knobHot ? Colors.WHITE : KNOB_REST, KNOB_SEGMENTS);
     }
 
-    /** The right manual-entry field, drawn while it is not focused (focused = native textbox render). */
-    public static void renderNumberBox(UIContext context, Area box, String label, int color)
+    /**
+     * The right manual-entry field, drawn while it is not focused (focused = native textbox render). Same MD3
+     * surface as text fields; pass the slider textbox's {@link MaterialField.State} so hover/focus animate
+     * continuously into the native editing render.
+     */
+    public static void renderNumberBox(UIContext context, Area box, String label, int color, MaterialField.State state)
     {
-        RoundedAreas.renderField(box, context.batcher, BBSSettings.inputSurface(), UICornerRadii.buttonsAndTrackpads());
+        MaterialField.render(context.batcher, box, UICornerRadii.buttonsAndTrackpads(), state, box.isInside(context), false);
 
         FontRenderer font = context.batcher.getFont();
 
@@ -180,9 +184,9 @@ public final class RefreshedSlider
      * there is nothing to lay the value out along. Drawn as our plain input field instead, with the
      * value right-aligned the way the stock slider spells it.
      */
-    public static void renderPlainField(UIContext context, Area area, String label, int color)
+    public static void renderPlainField(UIContext context, Area area, String label, int color, MaterialField.State state)
     {
-        RoundedAreas.renderField(area, context.batcher, BBSSettings.inputSurface(), UICornerRadii.buttonsAndTrackpads());
+        MaterialField.render(context.batcher, area, UICornerRadii.buttonsAndTrackpads(), state, area.isInside(context), false);
 
         FontRenderer font = context.batcher.getFont();
 

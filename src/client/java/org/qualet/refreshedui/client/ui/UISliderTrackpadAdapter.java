@@ -506,7 +506,7 @@ public class UISliderTrackpadAdapter extends UITrackpad
 
             if (RefreshedSlider.hasNumberBox(this.area))
             {
-                RefreshedSlider.renderNumberBox(context, this.textbox.area, label, color);
+                RefreshedSlider.renderNumberBox(context, this.textbox.area, label, color, ((IMaterialFieldHost) this.textbox).refreshedui$fieldState());
             }
             else
             {

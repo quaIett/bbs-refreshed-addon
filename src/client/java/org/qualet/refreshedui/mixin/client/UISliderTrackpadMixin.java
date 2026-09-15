@@ -1,6 +1,7 @@
 package org.qualet.refreshedui.mixin.client;
 
 import org.qualet.refreshedui.client.ui.IDefaultValue;
+import org.qualet.refreshedui.client.ui.IMaterialFieldHost;
 import org.qualet.refreshedui.client.ui.RefreshedSlider;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -210,7 +211,7 @@ public abstract class UISliderTrackpadMixin
 
             if (!this.hasSliderRange())
             {
-                RefreshedSlider.renderPlainField(context, self.area, label, color);
+                RefreshedSlider.renderPlainField(context, self.area, label, color, ((IMaterialFieldHost) self.textbox).refreshedui$fieldState());
             }
             else
             {
@@ -220,7 +221,7 @@ public abstract class UISliderTrackpadMixin
 
                 if (this.refreshedui$hasBox())
                 {
-                    RefreshedSlider.renderNumberBox(context, self.textbox.area, label, color);
+                    RefreshedSlider.renderNumberBox(context, self.textbox.area, label, color, ((IMaterialFieldHost) self.textbox).refreshedui$fieldState());
                 }
                 else
                 {
