@@ -1,4 +1,12 @@
 accessWidener v2 named
 
-# Reuse vanilla's font-storage resolver to build our own font-id-pinned TextRenderer (RefreshedFont).
-accessible	field	net/minecraft/client/font/TextRenderer	fontStorageAccessor	Ljava/util/function/Function;
+# Reuse vanilla's glyph provider to build our own font-id-pinned TextRenderer (RefreshedFont).
+accessible	field	net/minecraft/client/font/TextRenderer	fonts	Lnet/minecraft/client/font/TextRenderer$GlyphsProvider;
+
+# Record the addon's own elements (GuiTexturedMesh) into the deferred GUI, clipped like everything else.
+accessible	field	net/minecraft/client/gui/DrawContext	state	Lnet/minecraft/client/gui/render/state/GuiRenderState;
+accessible	field	net/minecraft/client/gui/DrawContext	scissorStack	Lnet/minecraft/client/gui/DrawContext$ScissorStack;
+accessible	class	net/minecraft/client/gui/DrawContext$ScissorStack
+
+# Copy a text element with a faded colour (GuiRenderStateAlphaMixin).
+accessible	field	net/minecraft/client/gui/render/state/TextGuiElementRenderState	trackEmpty	Z

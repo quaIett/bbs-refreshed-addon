@@ -2,12 +2,13 @@ plugins {
 	id 'fabric-loom' version '1.15-SNAPSHOT'
 }
 
-// --- Branch fs-2.6-1.21.1: BBS 2.6 on MC 1.21.1 (Java 21) ---
-// The 1.20.x targets live on fs-2.6; this branch differs from it only by the
-// MC 1.21 render API (BufferBuilder/PostEffectPass/Identifier) and this config.
-def mc = (project.findProperty("mc") ?: "1.21.1-fs").toString()
+// --- Branch fs-2.6-1.21.11: BBS 2.6 on MC 1.21.11 (Java 21) ---
+// The 1.20.x targets live on fs-2.6 and 1.21.1 on fs-2.6-1.21.1; this branch differs from
+// fs-2.6-1.21.1 by the MC 1.21.11 deferred-GUI render API (GuiRenderState, PostEffectPipeline,
+// GpuTexture) and this config.
+def mc = (project.findProperty("mc") ?: "1.21.11-fs").toString()
 def MC = [
-	"1.21.1-fs": [mc: "1.21.1", yarn: "1.21.1+build.3", fabric: "0.116.12+1.21.1", bbs: "bbs-2.6-1.21.1.jar", pin: "1.21.1", suffix: "fs2.6-1.21.1"],
+	"1.21.11-fs": [mc: "1.21.11", yarn: "1.21.11+build.6", fabric: "0.141.4+1.21.11", bbs: "bbs-2.6-1.21.11.jar", pin: "1.21.11", suffix: "fs2.6-1.21.11"],
 ]
 if (!MC.containsKey(mc)) {
 	throw new GradleException("Unsupported -Pmc=${mc}. Supported: ${MC.keySet().join(', ')}")

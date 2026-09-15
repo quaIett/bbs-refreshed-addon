@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * <p>Both directions reduce to one {@link #visibility} value (0 hidden &rarr; 1 shown for appear, 1 &rarr;
  * 0 for close); the panel slide+fade and backdrop fade are the same math either way. The slide is a matrix
- * translate; the panel fade composites the panel through {@link OverlaySnapshot} (see
+ * translate; the panel fade scales the alpha of what the panel records through {@link GuiAlpha} (see
  * {@code UIOverlayPanelMixin}), the backdrop fade scales its colour's alpha (see {@code UIOverlayMixin}).</p>
  *
  * <p><b>Close defers the detach.</b> BBS {@code UIOverlay.closeItself} removes the overlay from the tree at

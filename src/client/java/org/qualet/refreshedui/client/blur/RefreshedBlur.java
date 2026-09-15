@@ -1,15 +1,25 @@
 package org.qualet.refreshedui.client.blur;
 
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.Std140Builder;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.FilterMode;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.GlUniform;
-import net.minecraft.client.gl.PostEffectPass;
+import net.minecraft.client.gl.GpuSampler;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gl.SimpleFramebuffer;
-import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
+import net.minecraft.client.gl.UniformType;
+import net.minecraft.util.Identifier;
+import org.lwjgl.system.MemoryStack;
 import org.qualet.refreshedui.RefreshedUiAddon;
+
+import java.nio.ByteBuffer;
+import java.util.OptionalInt;
 
 /**
  * "Refreshed Blur": dual Kawase (Bjorge, ARM 2015) over the main framebuffer, standing in for the box blur
@@ -17,19 +27,16 @@ import org.qualet.refreshedui.RefreshedUiAddon;
  * of half-size targets with a 5-tap filter and upsampled back with an 8-tap one, so almost all the work
  * happens at a fraction of the resolution — a smoother, Gaussian-like result for far fewer texture reads.
  *
- * <p>Passes are vanilla {@link PostEffectPass}es. Two 1.20.4 quirks shape this class:</p>
- * <ul>
- *     <li>post programs are looked up as {@code shaders/program/<name>.json} with no namespace support, so
- *     ours live in the {@code minecraft} namespace under a {@code refreshedui_} prefix;</li>
- *     <li>passes never set a texture filter and framebuffers default to {@code GL_NEAREST}, which would turn
- *     Kawase's in-between taps into blocks — the chain is linear, and so is {@code main} for the one pass
- *     that reads it.</li>
- * </ul>
+ * <p>MC 1.21.11: runs in the GUI renderer's blur slot (BBS's {@code InterfaceBlur.render}), when the layers
+ * under the marked one are already composited. The passes are driven directly through the GPU device rather
+ * than a {@code PostEffectProcessor}: a processor bakes its uniform values when it is built, and the tap
+ * offset changes with the radius setting and every frame of an overlay's close animation. The two pipelines
+ * are built once; the offset lives in a small mapped uniform buffer and each level's sizes in a static one.</p>
  */
 public final class RefreshedBlur
 {
-    private static final String DOWN = "refreshedui_kawase_down";
-    private static final String UP = "refreshedui_kawase_up";
+    private static final RenderPipeline DOWN = pipeline("kawase_down");
+    private static final RenderPipeline UP = pipeline("kawase_up");
 
     private static final int MAX_LEVELS = 5;
     /** A level smaller than this on either side is not worth a pass (and would smear the edges). */
@@ -56,25 +63,30 @@ public final class RefreshedBlur
 
     /** chain[0] is main (not owned); chain[i] is main downsampled i times. */
     private static Framebuffer[] chain;
-    /** down[i]: chain[i] into chain[i + 1]; up[i]: chain[i + 1] into chain[i]. */
-    private static PostEffectPass[] down;
-    private static PostEffectPass[] up;
+    /** SamplerInfo (OutSize, InSize) of down[i]: chain[i] into chain[i + 1], and up[i]: chain[i + 1] into chain[i]. */
+    private static GpuBuffer[] downInfo;
+    private static GpuBuffer[] upInfo;
+    /** KawaseConfig: the tap offset, rewritten every blurred frame. */
+    private static GpuBuffer config;
     private static int levels;
     private static int width;
     private static int height;
 
-    /** Set when the chain failed to build, so a broken shader costs one stack trace and BBS's blur takes over. */
+    /** Set when the chain failed to build or draw, so a broken shader costs one stack trace and BBS's blur takes over. */
     private static boolean broken;
 
     /** Below this standard deviation the blur is invisible; drawing it would only cost passes. */
     private static final float MIN_SIGMA = 0.5F;
 
     /**
-     * Multiplier on the blur strength for the blur applied now (1 = full). Temporary fix for BBS removing the blur
-     * at once when an overlay closes: {@code UIOverlayMixin} sets it to the overlay's visibility while the close
-     * animation plays, so the blur thins out together with the panel and the dimming.
+     * Multiplier on the blur strength (1 = full). Temporary fix for BBS removing the blur at once when an overlay
+     * closes: {@code UIOverlayMixin} sets it to the overlay's visibility while the close animation plays, so the
+     * blur thins out together with the panel and the dimming.
      */
     private static float strength = 1F;
+
+    /** {@link #strength} as it was when the frame's blur layer was marked — the blur itself runs after render returns. */
+    private static float markedStrength = 1F;
 
     private RefreshedBlur()
     {}
@@ -87,6 +99,12 @@ public final class RefreshedBlur
     public static void endStrength()
     {
         strength = 1F;
+    }
+
+    /** Called where BBS marks the blur layer; the latest mark of the frame wins, as it does in BBS. */
+    public static void mark()
+    {
+        markedStrength = strength;
     }
 
     public static boolean enabled()
@@ -105,14 +123,17 @@ public final class RefreshedBlur
 
         if (chain == null || main.textureWidth != width || main.textureHeight != height)
         {
-            if (!rebuild(mc, main))
+            if (!rebuild(main))
             {
                 return false;
             }
         }
 
+        /* The main target can be swapped out from under us (BBS widens that field); read it every frame */
+        chain[0] = main;
+
         /* BBS's box of half-width R is 2R + 1 wide: sigma^2 = ((2R + 1)^2 - 1) / 12 */
-        float target = (float) Math.sqrt(radius * (radius + 1) / 3D) * strength;
+        float target = (float) Math.sqrt(radius * (radius + 1) / 3D) * markedStrength;
 
         if (target < MIN_SIGMA)
         {
@@ -123,73 +144,59 @@ public final class RefreshedBlur
         int n = pickLevels(target);
         float offset = pickOffset(n, target);
 
-        int depthFunction = GL11.glGetInteger(GL11.GL_DEPTH_FUNC);
-        boolean depthTest = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
-        boolean depthMask = GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
-        int mainFilter = main.texFilter;
-
         try
         {
-            /* Blur only changes color: the passes clear their output, and that must not wipe main's depth */
-            RenderSystem.disableDepthTest();
-            RenderSystem.depthMask(false);
+            CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
 
-            main.setTexFilter(GL11.GL_LINEAR);
+            try (GpuBuffer.MappedView view = encoder.mapBuffer(config, false, true))
+            {
+                Std140Builder.intoBuffer(view.data()).putFloat(offset);
+            }
+
+            GpuSampler linear = RenderSystem.getSamplerCache().get(FilterMode.LINEAR);
 
             for (int i = 0; i < n; i++)
             {
-                run(down[i], offset);
-
-                if (i == 0)
-                {
-                    main.setTexFilter(mainFilter);
-                }
+                run(encoder, DOWN, chain[i], chain[i + 1], downInfo[i], linear);
             }
 
             for (int i = n - 1; i >= 0; i--)
             {
-                run(up[i], offset);
+                run(encoder, UP, chain[i + 1], chain[i], upInfo[i], linear);
             }
         }
-        finally
+        catch (Exception e)
         {
-            if (main.texFilter != mainFilter)
-            {
-                main.setTexFilter(mainFilter);
-            }
+            e.printStackTrace();
 
-            /* PostEffectPass leaves GL_LEQUAL behind, but BBS paints its UI with GL_ALWAYS */
-            main.beginWrite(true);
-            RenderSystem.depthMask(depthMask);
-            RenderSystem.depthFunc(depthFunction);
+            close();
+            broken = true;
 
-            if (depthTest)
-            {
-                RenderSystem.enableDepthTest();
-            }
-            else
-            {
-                RenderSystem.disableDepthTest();
-            }
-
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.activeTexture(GL13.GL_TEXTURE0);
+            return false;
         }
 
         return true;
     }
 
-    private static void run(PostEffectPass pass, float offset)
+    private static void run(CommandEncoder encoder, RenderPipeline pipeline, Framebuffer input, Framebuffer output, GpuBuffer info, GpuSampler sampler)
     {
-        GlUniform uniform = pass.getProgram().getUniformByName("Offset");
+        GpuTextureView in = input.getColorAttachmentView();
+        GpuTextureView out = output.getColorAttachmentView();
 
-        if (uniform != null)
+        if (in == null || out == null)
         {
-            uniform.set(offset);
+            return;
         }
 
-        pass.render(0F);
+        try (RenderPass pass = encoder.createRenderPass(() -> "Refreshed blur", out, OptionalInt.empty()))
+        {
+            pass.setPipeline(pipeline);
+            RenderSystem.bindDefaultUniforms(pass);
+            pass.setUniform("SamplerInfo", info);
+            pass.setUniform("KawaseConfig", config);
+            pass.bindTexture("InSampler", in, sampler);
+            pass.draw(0, 3);
+        }
     }
 
     /** The fewest levels that reach {@code target} without pushing the offset past {@link #MAX_CLEAN_OFFSET}. */
@@ -242,7 +249,7 @@ public final class RefreshedBlur
     }
 
     /** The chain holds targets sized off the screen, so a resized window means a new one. */
-    private static boolean rebuild(MinecraftClient mc, Framebuffer main)
+    private static boolean rebuild(Framebuffer main)
     {
         close();
 
@@ -265,8 +272,8 @@ public final class RefreshedBlur
             }
 
             chain = new Framebuffer[count + 1];
-            down = new PostEffectPass[count];
-            up = new PostEffectPass[count];
+            downInfo = new GpuBuffer[count];
+            upInfo = new GpuBuffer[count];
             chain[0] = main;
 
             w = main.textureWidth;
@@ -276,18 +283,16 @@ public final class RefreshedBlur
             {
                 w /= 2;
                 h /= 2;
-
-                Framebuffer target = new SimpleFramebuffer(w, h, false, MinecraftClient.IS_SYSTEM_MAC);
-
-                target.setTexFilter(GL11.GL_LINEAR);
-                chain[i] = target;
+                chain[i] = new SimpleFramebuffer("refreshedui_blur_" + i, w, h, false);
             }
 
             for (int i = 0; i < count; i++)
             {
-                down[i] = pass(mc, DOWN, chain[i], chain[i + 1]);
-                up[i] = pass(mc, UP, chain[i + 1], chain[i]);
+                downInfo[i] = samplerInfo(chain[i + 1], chain[i]);
+                upInfo[i] = samplerInfo(chain[i], chain[i + 1]);
             }
+
+            config = RenderSystem.getDevice().createBuffer(() -> "Refreshed blur config", GpuBuffer.USAGE_UNIFORM | GpuBuffer.USAGE_MAP_WRITE, 16L);
 
             levels = count;
             width = main.textureWidth;
@@ -306,24 +311,39 @@ public final class RefreshedBlur
         }
     }
 
-    private static PostEffectPass pass(MinecraftClient mc, String program, Framebuffer input, Framebuffer output) throws Exception
+    private static GpuBuffer samplerInfo(Framebuffer output, Framebuffer input)
     {
-        /* Since 1.21.1 the pass takes its input filter explicitly; Kawase taps need linear */
-        PostEffectPass pass = new PostEffectPass(mc.getResourceManager(), program, input, output, true);
+        try (MemoryStack stack = MemoryStack.stackPush())
+        {
+            ByteBuffer data = Std140Builder.onStack(stack, 16)
+                .putVec2(output.textureWidth, output.textureHeight)
+                .putVec2(input.textureWidth, input.textureHeight)
+                .get();
 
-        pass.setProjectionMatrix(new Matrix4f().setOrtho(0F, output.textureWidth, 0F, output.textureHeight, 0.1F, 1000F));
+            return RenderSystem.getDevice().createBuffer(() -> "Refreshed blur sampler info", GpuBuffer.USAGE_UNIFORM, data);
+        }
+    }
 
-        return pass;
+    private static RenderPipeline pipeline(String fragment)
+    {
+        return RenderPipeline.builder(RenderPipelines.POST_EFFECT_PROCESSOR_SNIPPET)
+            .withLocation(Identifier.of("refreshedui", "pipeline/" + fragment))
+            .withVertexShader(Identifier.ofVanilla("core/screenquad"))
+            .withFragmentShader(Identifier.of("refreshedui", "post/" + fragment))
+            .withSampler("InSampler")
+            .withUniform("SamplerInfo", UniformType.UNIFORM_BUFFER)
+            .withUniform("KawaseConfig", UniformType.UNIFORM_BUFFER)
+            .build();
     }
 
     private static void close()
     {
-        if (down != null)
+        if (downInfo != null)
         {
-            for (int i = 0; i < down.length; i++)
+            for (int i = 0; i < downInfo.length; i++)
             {
-                if (down[i] != null) down[i].close();
-                if (up[i] != null) up[i].close();
+                if (downInfo[i] != null) downInfo[i].close();
+                if (upInfo[i] != null) upInfo[i].close();
             }
         }
 
@@ -336,9 +356,15 @@ public final class RefreshedBlur
             }
         }
 
+        if (config != null)
+        {
+            config.close();
+        }
+
         chain = null;
-        down = null;
-        up = null;
+        downInfo = null;
+        upInfo = null;
+        config = null;
         levels = 0;
     }
 }

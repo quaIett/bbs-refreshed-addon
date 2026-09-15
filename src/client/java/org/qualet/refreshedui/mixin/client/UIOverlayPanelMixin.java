@@ -1,6 +1,5 @@
 package org.qualet.refreshedui.mixin.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
@@ -8,9 +7,9 @@ import mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.colors.Colors;
-import net.minecraft.client.util.math.MatrixStack;
+import org.joml.Matrix3x2fStack;
+import org.qualet.refreshedui.client.anim.GuiAlpha;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
-import org.qualet.refreshedui.client.anim.OverlaySnapshot;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,25 +27,20 @@ import org.spongepowered.asm.mixin.injection.Inject;
  *
  * <p>The whole {@code render} is also wrapped to play the {@link OverlayReveal} slide + fade: the panel
  * starts a few pixels low and transparent and settles into place (and leaves the same way). The slide is
- * a matrix translate; the fade goes through {@link OverlaySnapshot} — the panel is drawn opaque into a
- * copy of the screen that is then blended over it — so the rounded frame, icon strip, icons, text and
- * content fade as one flat picture instead of as stacked translucent layers. Without a snapshot target
- * the fade falls back to the shader colour.</p>
+ * a matrix translate; the fade scales the alpha of everything the panel records ({@link GuiAlpha}).
+ *
+ * <p>MC 1.21.11 records the GUI and composites it after the screen renders, so the 1.20/1.21.1 way of fading
+ * the panel as one flat picture (drawing it into an off-screen copy of the screen) has no moment to run in.
+ * Per-element alpha lets stacked layers show through each other while the panel is translucent; the rounded
+ * frame lays its border out as a ring so the most visible case — the border tinting the body — does not
+ * occur.</p>
  */
 @Mixin(UIOverlayPanel.class)
 public abstract class UIOverlayPanelMixin
 {
-    /** True while {@link #refreshedui$revealHead} pushed a matrix (and opened a fade) that the tail must undo. */
+    /** True while {@link #refreshedui$revealHead} pushed a matrix (and a fade) that the tail must undo. */
     @Unique
     private boolean refreshedui$revealing;
-
-    /** Whether the open fade is a snapshot capture (else the shader-colour fallback). */
-    @Unique
-    private boolean refreshedui$snapshot;
-
-    /** Visibility sampled at the head, so the tail blends at the same value the slide was placed at. */
-    @Unique
-    private float refreshedui$visibility;
 
     @Inject(method = "render", at = @At("HEAD"))
     private void refreshedui$revealHead(UIContext context, CallbackInfo ci)
@@ -60,18 +54,12 @@ public abstract class UIOverlayPanelMixin
             return;
         }
 
-        this.refreshedui$visibility = vis;
-        this.refreshedui$snapshot = OverlaySnapshot.begin(context);
+        GuiAlpha.push(vis);
 
-        if (!this.refreshedui$snapshot)
-        {
-            RenderSystem.setShaderColor(1F, 1F, 1F, vis);
-        }
+        Matrix3x2fStack matrices = context.batcher.getContext().getMatrices();
 
-        MatrixStack matrices = context.batcher.getContext().getMatrices();
-
-        matrices.push();
-        matrices.translate(0F, (1F - vis) * OverlayReveal.SLIDE_PX, 0F);
+        matrices.pushMatrix();
+        matrices.translate(0F, (1F - vis) * OverlayReveal.SLIDE_PX);
 
         this.refreshedui$revealing = true;
     }
@@ -84,17 +72,8 @@ public abstract class UIOverlayPanelMixin
             return;
         }
 
-        /* Vertices are baked with the matrix as they are emitted, so popping before the flush inside end() is fine */
-        context.batcher.getContext().getMatrices().pop();
-
-        if (this.refreshedui$snapshot)
-        {
-            OverlaySnapshot.end(context, this.refreshedui$visibility);
-        }
-        else
-        {
-            RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
-        }
+        context.batcher.getContext().getMatrices().popMatrix();
+        GuiAlpha.pop();
 
         this.refreshedui$revealing = false;
     }

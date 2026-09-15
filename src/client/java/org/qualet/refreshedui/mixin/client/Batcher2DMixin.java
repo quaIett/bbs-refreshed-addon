@@ -1,24 +1,21 @@
 package org.qualet.refreshedui.mixin.client;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import mchorse.bbs_mod.BBSModClient;
+import mchorse.bbs_mod.client.PixelArt;
 import mchorse.bbs_mod.graphics.texture.Texture;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.utils.colors.Colors;
 import mchorse.bbs_mod.utils.resources.Pixels;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.BufferRenderer;
-import net.minecraft.client.render.BuiltBuffer;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
-import org.joml.Matrix4f;
+import net.minecraft.client.render.VertexConsumer;
+import org.joml.Matrix3x2fc;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import org.qualet.refreshedui.client.batcher.CheckerMesh;
+import org.qualet.refreshedui.client.batcher.GuiTexturedMesh;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,10 +33,15 @@ import java.nio.ByteBuffer;
  * <h2>Rounded rectangles</h2>
  * Anti-aliased rounded corners without a custom shader: a 64x64 RGBA alpha mask holds one
  * quarter-circle (white RGB, alpha = sub-pixel coverage). A rounded rect is drawn as a 9-slice
- * (TL/top/TR | L/center/R | BL/bottom/BR) in a single POSITION_TEXTURE_COLOR batch: the four
+ * (TL/top/TR | L/center/R | BL/bottom/BR) in a single POSITION_TEXTURE_COLOR mesh: the four
  * corner cells sample the mask quadrant (UV mirrored per corner so the arc faces outward), and
  * the five edge/center cells sample UV(1,1) — the mask's fully-opaque inner texel — so the body
  * is solid and corner-to-edge joins share the exact same sampler position (no seams).
+ *
+ * <h2>MC 1.21.11</h2>
+ * The GUI is recorded and composited after {@code Screen.render}, so the slices are no longer drawn
+ * through a {@code BufferBuilder}: each primitive records one {@link GuiTexturedMesh} (four vertices per
+ * cell, vanilla's quad winding) and submits it into the deferred GUI with {@code GUI_TEXTURED}.
  */
 @Mixin(Batcher2D.class)
 public abstract class Batcher2DMixin implements IRoundedBatcher
@@ -56,9 +58,6 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     @Shadow
     public abstract void texturedArea(Texture texture, int color, float x, float y, float w, float h, float u, float v, float tileW, float tileH, int tw, int th);
 
-    @Shadow
-    protected abstract void fillTexturedBox(BufferBuilder builder, Matrix4f matrix, int color, float x, float y, float w, float h, float u1, float v1, float u2, float v2, int textureW, int textureH);
-
     @Unique
     private static final float ROUNDED_RECT_MIN_RADIUS = 0.5F;
     @Unique
@@ -70,6 +69,18 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     private static float clampRoundedRectRadius(float w, float h, float radius)
     {
         return Math.min(radius, Math.min(w * 0.5F, h * 0.5F));
+    }
+
+    @Unique
+    private Matrix3x2fc refreshedui$matrix()
+    {
+        return this.context.getMatrices();
+    }
+
+    @Unique
+    private void refreshedui$draw(GuiTexturedMesh mesh, Texture texture)
+    {
+        mesh.draw(this.context, RenderPipelines.GUI_TEXTURED, texture);
     }
 
     @Unique
@@ -101,8 +112,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     @Unique
     private static Texture roundedRectMaskInverted;
 
-    /* Separate texture instead of an inverted blend func: vanilla core shaders declare their own blend
-     * state and re-apply it on bind, so a manual blendFunc before drawing does not survive. */
+    /* Separate texture instead of an inverted blend func: the GUI pipelines carry their own blend state. */
     @Unique
     private Texture getRoundedRectMaskInverted()
     {
@@ -121,8 +131,8 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     }
 
     /* Single-quadrant mask: outer arc tip (UV 0,0) -> alpha 0, inner corner texel (UV 1,1) -> alpha 1.
-     * GL_CLAMP_TO_EDGE is mandatory: edge/center cells sample UV exactly 1.0 and would wrap to alpha 0
-     * under the default GL_REPEAT, turning the body semi-transparent. */
+     * Clamp-to-edge is mandatory: edge/center cells sample UV exactly 1.0 and would wrap to alpha 0 under
+     * repeat, turning the body semi-transparent (the adopted sampler clamps; the wrap is kept for GL too). */
     @Unique
     private static Texture buildRoundedRectMask(int size)
     {
@@ -170,25 +180,23 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         return texture;
     }
 
-    /* Two triangles for one cell. UVs are passed per corner so callers can mirror the mask quadrant. */
+    /* One cell as a quad in vanilla's winding (TL, BL, BR, TR). UVs are passed per corner so callers can
+     * mirror the mask quadrant: uXY/vXY, X = 0 left / 1 right, Y = 0 top / 1 bottom. */
     @Unique
-    private static void emitMaskQuad(BufferBuilder b, Matrix4f m,
+    private static void emitMaskQuad(VertexConsumer b, Matrix3x2fc m,
         float x0, float y0, float x1, float y1,
         float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
         int color)
     {
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color);
+        b.vertex(m, x0, y0).texture(u00, v00).color(color);
+        b.vertex(m, x0, y1).texture(u01, v01).color(color);
+        b.vertex(m, x1, y1).texture(u11, v11).color(color);
+        b.vertex(m, x1, y0).texture(u10, v10).color(color);
     }
 
-    /* Emit one rounded-rect silhouette as up to 9 mask-sampled quads into the caller's active
-     * TRIANGLES batch. r must be clamped and >= ROUNDED_RECT_MIN_RADIUS. */
+    /* Emit one rounded-rect silhouette as up to 9 mask-sampled quads. r must be clamped and >= ROUNDED_RECT_MIN_RADIUS. */
     @Unique
-    private static void emitRoundedSliceMask(BufferBuilder b, Matrix4f m,
+    private static void emitRoundedSliceMask(VertexConsumer b, Matrix3x2fc m,
         float x, float y, float w, float h, float r, int color)
     {
         float x0 = x;
@@ -227,9 +235,9 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
     /* 9-slice with per-side rounding. When a side is not rounded, xa/xb collapse to x0/x1 and the
      * top/bottom strips absorb the square corner region with UV=(1,1) (alpha 1). Lets callers draw
-     * "half-pill" caps as one batch without scissor + plain-box tricks. */
+     * "half-pill" caps as one mesh without scissor + plain-box tricks. */
     @Unique
-    private static void emitRoundedSliceMaskSides(BufferBuilder b, Matrix4f m,
+    private static void emitRoundedSliceMaskSides(VertexConsumer b, Matrix3x2fc m,
         float x, float y, float w, float h, float r, int color,
         boolean roundLeft, boolean roundRight)
     {
@@ -281,7 +289,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
      * else a solid (UV=1) quad -> square corner. Edges + center are always solid. Used to merge a stack of
      * selected rows into one block; correct for translucent fills (no double-alpha overdraw). */
     @Unique
-    private static void emitRoundedSliceMaskCorners(BufferBuilder b, Matrix4f m,
+    private static void emitRoundedSliceMaskCorners(VertexConsumer b, Matrix3x2fc m,
         float x, float y, float w, float h, float r, int color,
         boolean tl, boolean tr, boolean br, boolean bl)
     {
@@ -342,25 +350,16 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        emitRoundedSliceMask(builder, matrix4f, x, y, w, h, r, color);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
+        emitRoundedSliceMask(mesh, this.refreshedui$matrix(), x, y, w, h, r, color);
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /* emitMaskQuad with everything above cutY dropped. Cells are axis-aligned and V only varies along Y, so
      * cropping the top edge just interpolates the top UVs toward the bottom ones. */
     @Unique
-    private static void emitMaskQuadBelow(BufferBuilder b, Matrix4f m,
+    private static void emitMaskQuadBelow(VertexConsumer b, Matrix3x2fc m,
         float x0, float y0, float x1, float y1,
         float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
         int color, float cutY)
@@ -413,43 +412,41 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         boolean hasMidW = xb > xa;
         boolean hasMidH = yb > ya;
 
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
-
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
         /* Same cells/UVs as emitRoundedSliceMask, each cropped to the band. */
-        emitMaskQuadBelow(builder, matrix4f, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color, cut);
-        emitMaskQuadBelow(builder, matrix4f, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color, cut);
-        emitMaskQuadBelow(builder, matrix4f, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color, cut);
-        emitMaskQuadBelow(builder, matrix4f, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color, cut);
+        emitMaskQuadBelow(mesh, m, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color, cut);
+        emitMaskQuadBelow(mesh, m, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color, cut);
+        emitMaskQuadBelow(mesh, m, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color, cut);
+        emitMaskQuadBelow(mesh, m, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color, cut);
 
         if (hasMidW)
         {
-            emitMaskQuadBelow(builder, matrix4f, xa, y0, xb, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
-            emitMaskQuadBelow(builder, matrix4f, xa, yb, xb, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(mesh, m, xa, y0, xb, ya, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(mesh, m, xa, yb, xb, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
         }
         if (hasMidH)
         {
-            emitMaskQuadBelow(builder, matrix4f, x0, ya, xa, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
-            emitMaskQuadBelow(builder, matrix4f, xb, ya, x1, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(mesh, m, x0, ya, xa, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(mesh, m, xb, ya, x1, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
         }
         if (hasMidW && hasMidH)
         {
-            emitMaskQuadBelow(builder, matrix4f, xa, ya, xb, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
+            emitMaskQuadBelow(mesh, m, xa, ya, xb, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, color, cut);
         }
 
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /**
-     * Rounded border with a rounded inset fill, both emitted into one batch. {@code inset} is the
-     * border thickness; the inner radius follows the outer one minus the inset.
+     * Rounded border with a rounded inset fill, both in one mesh. {@code inset} is the border thickness;
+     * the inner radius follows the outer one minus the inset.
+     *
+     * <p>The border is laid out as a ring — the four arc cells plus straight strips of the inset's
+     * thickness — rather than a whole rounded rect under the fill: a panel faded through {@code GuiAlpha}
+     * would otherwise show its border colour through the translucent body. Only the small arc cells still
+     * overlap the fill.</p>
      */
     @Override
     public void roundedFrame(float x, float y, float w, float h, float radius, float inset, int borderColor, int fillColor)
@@ -473,20 +470,42 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
 
         float innerR = clampRoundedRectRadius(innerW, innerH, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - inset));
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+        if (outerR - inset < ROUNDED_RECT_MIN_RADIUS)
+        {
+            /* The inner arc would bulge past the strips; stack the two silhouettes instead */
+            emitRoundedSliceMask(mesh, m, x, y, w, h, outerR, borderColor);
+        }
+        else
+        {
+            float x1 = x + w;
+            float y1 = y + h;
+            float xa = x + outerR;
+            float xb = x1 - outerR;
+            float ya = y + outerR;
+            float yb = y1 - outerR;
 
-        emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, borderColor);
-        emitRoundedSliceMask(builder, matrix4f, innerX, innerY, innerW, innerH, innerR, fillColor);
+            emitMaskQuad(mesh, m, x, y, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, borderColor);
+            emitMaskQuad(mesh, m, xb, y, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, borderColor);
+            emitMaskQuad(mesh, m, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, borderColor);
+            emitMaskQuad(mesh, m, x, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, borderColor);
 
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
+            if (xb > xa)
+            {
+                emitMaskQuad(mesh, m, xa, y, xb, y + inset, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, borderColor);
+                emitMaskQuad(mesh, m, xa, y1 - inset, xb, y1, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, borderColor);
+            }
+            if (yb > ya)
+            {
+                emitMaskQuad(mesh, m, x, ya, x + inset, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, borderColor);
+                emitMaskQuad(mesh, m, x1 - inset, ya, x1, yb, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, borderColor);
+            }
+        }
 
-        this.context.draw();
+        emitRoundedSliceMask(mesh, m, innerX, innerY, innerW, innerH, innerR, fillColor);
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /**
@@ -517,25 +536,18 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         }
 
         float innerR = clampRoundedRectRadius(w - 2F, h - 2F, Math.max(ROUNDED_RECT_MIN_RADIUS, outerR - 1F));
-        Texture mask = this.getRoundedRectMaskInverted();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        this.context.draw();
+        emitRoundedSliceMask(mesh, m, x + 1F, y + 1F, w - 2F, h - 2F, innerR, Colors.A100 | borderColor);
+        emitRoundedSliceMask(mesh, m, x, y, w, h, outerR, Colors.A100 | outsideColor);
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        emitRoundedSliceMask(builder, matrix4f, x + 1F, y + 1F, w - 2F, h - 2F, innerR, Colors.A100 | borderColor);
-        emitRoundedSliceMask(builder, matrix4f, x, y, w, h, outerR, Colors.A100 | outsideColor);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
+        this.refreshedui$draw(mesh, this.getRoundedRectMaskInverted());
     }
 
     /**
      * Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap whose
-     * flat side meets a straight body. Single draw call, no scissor.
+     * flat side meets a straight body. Single mesh, no scissor.
      */
     @Override
     public void roundedBoxSides(float x, float y, float w, float h, float radius, int color, boolean roundLeft, boolean roundRight)
@@ -561,23 +573,14 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        emitRoundedSliceMaskSides(builder, matrix4f, x, y, w, h, r, color, roundLeft, roundRight);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
+        emitRoundedSliceMaskSides(mesh, this.refreshedui$matrix(), x, y, w, h, r, color, roundLeft, roundRight);
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /**
-     * Like {@link #roundedBox} but rounds only the flagged corners (others stay square). Single batch,
+     * Like {@link #roundedBox} but rounds only the flagged corners (others stay square). Single mesh,
      * correct for translucent fills — used to merge a vertical run of selected rows into one block.
      */
     @Override
@@ -605,42 +608,31 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        emitRoundedSliceMaskCorners(builder, matrix4f, x, y, w, h, r, color, roundTopLeft, roundTopRight, roundBottomRight, roundBottomLeft);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
+        emitRoundedSliceMaskCorners(mesh, this.refreshedui$matrix(), x, y, w, h, r, color, roundTopLeft, roundTopRight, roundBottomRight, roundBottomLeft);
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /* === Color picker rounding (3.12) === horizontal alpha ramp + tiled checker swatch. */
 
     /* Per-vertex color variant of emitMaskQuad for gradients. UV layout identical. */
     @Unique
-    private static void emitMaskQuadC(BufferBuilder b, Matrix4f m,
+    private static void emitMaskQuadC(VertexConsumer b, Matrix3x2fc m,
         float x0, float y0, float x1, float y1,
         float u00, float v00, float u10, float v10, float u11, float v11, float u01, float v01,
         int c00, int c10, int c11, int c01)
     {
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01);
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(c11);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10);
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(c01);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(c10);
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(c00);
+        b.vertex(m, x0, y0).texture(u00, v00).color(c00);
+        b.vertex(m, x0, y1).texture(u01, v01).color(c01);
+        b.vertex(m, x1, y1).texture(u11, v11).color(c11);
+        b.vertex(m, x1, y0).texture(u10, v10).color(c10);
     }
 
     /* Horizontal alpha-ramp variant of emitRoundedSliceMask: color depends on x only, so we
      * precompute it at the four distinct x positions (x0, xa, xb, x1) and reuse per cell. */
     @Unique
-    private static void emitRoundedSliceMaskGradH(BufferBuilder b, Matrix4f m,
+    private static void emitRoundedSliceMaskGradH(VertexConsumer b, Matrix3x2fc m,
         float x, float y, float w, float h, float r,
         float regionX, float regionW, float cr, float cg, float cb, float endAlpha)
     {
@@ -724,174 +716,16 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
-        Texture mask = this.getRoundedRectMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        emitRoundedSliceMaskGradH(builder, matrix4f, x, y, w, h, r, x, w, cr, cg, cb, endAlpha);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
-    }
-
-    @Unique
-    private static float checkboardU(Icon icon, float px, float originX)
-    {
-        float dx = px - originX;
-        float tile = icon.w;
-
-        if (tile <= 0.0001F)
-        {
-            return icon.x / (float) icon.textureW;
-        }
-
-        float lx = dx - (float) Math.floor(dx / tile) * tile;
-
-        return (icon.x + lx) / (float) icon.textureW;
-    }
-
-    @Unique
-    private static float checkboardV(Icon icon, float py, float originY)
-    {
-        float dy = py - originY;
-        float tile = icon.h;
-
-        if (tile <= 0.0001F)
-        {
-            return icon.y / (float) icon.textureH;
-        }
-
-        float ly = dy - (float) Math.floor(dy / tile) * tile;
-
-        return (icon.y + ly) / (float) icon.textureH;
-    }
-
-    /* Tiles an Icon inside an axis-aligned rectangle with phase locked to originX/originY (same
-     * repeat as texturedArea would have if that area started at the origin). */
-    @Unique
-    private void fillCheckerboardTiledRegion(Texture texture, int color, float rx, float ry, float rw, float rh, float originX, float originY, Icon icon)
-    {
-        if (rw <= 0F || rh <= 0F)
-        {
-            return;
-        }
-
-        float x2 = rx + rw;
-        float y2 = ry + rh;
-        float tileW = icon.w;
-        float tileH = icon.h;
-
-        Matrix4f matrix = this.context.getMatrices().peek().getPositionMatrix();
-
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        RenderSystem.setShaderTexture(0, texture.id);
-
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        for (float yy = ry; yy < y2; )
-        {
-            double relY = yy - originY;
-            float dv = (float) (relY - Math.floor(relY / tileH) * tileH);
-            float yh = Math.min(tileH - dv, y2 - yy);
-
-            if (yh <= 0F)
-            {
-                break;
-            }
-
-            for (float xx = rx; xx < x2; )
-            {
-                double relX = xx - originX;
-                float du = (float) (relX - Math.floor(relX / tileW) * tileW);
-                float xw = Math.min(tileW - du, x2 - xx);
-
-                if (xw <= 0F)
-                {
-                    break;
-                }
-
-                float u1 = icon.x + du;
-                float v1 = icon.y + dv;
-
-                this.fillTexturedBox(builder, matrix, color, xx, yy, xw, yh, u1, v1, u1 + xw, v1 + yh, icon.textureW, icon.textureH);
-                xx += xw;
-            }
-
-            yy += yh;
-        }
-
-        RenderSystem.enableBlend();
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
-    }
-
-    /* Four corner quads with mask UV (no edges/center). Used by the 2-pass textured variant. */
-    @Unique
-    private static void emitRoundedCornersMask(BufferBuilder b, Matrix4f m,
-        float x, float y, float w, float h, float r, int color)
-    {
-        float x0 = x;
-        float y0 = y;
-        float x1 = x + w;
-        float y1 = y + h;
-        float xa = x0 + r;
-        float xb = x1 - r;
-        float ya = y0 + r;
-        float yb = y1 - r;
-
-        emitMaskQuad(b, m, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color);
-        emitMaskQuad(b, m, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color);
-        emitMaskQuad(b, m, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color);
-        emitMaskQuad(b, m, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color);
-    }
-
-    /* Four corner quads with checker-tile UV. */
-    @Unique
-    private static void emitRoundedCornersChecker(BufferBuilder b, Matrix4f m,
-        float x, float y, float w, float h, float r, Icon icon, float ox, float oy, int color)
-    {
-        float x0 = x;
-        float y0 = y;
-        float x1 = x + w;
-        float y1 = y + h;
-        float xa = x0 + r;
-        float xb = x1 - r;
-        float ya = y0 + r;
-        float yb = y1 - r;
-
-        emitCheckerQuad(b, m, x0, y0, xa, ya, icon, ox, oy, color);
-        emitCheckerQuad(b, m, xb, y0, x1, ya, icon, ox, oy, color);
-        emitCheckerQuad(b, m, xb, yb, x1, y1, icon, ox, oy, color);
-        emitCheckerQuad(b, m, x0, yb, xa, y1, icon, ox, oy, color);
-    }
-
-    @Unique
-    private static void emitCheckerQuad(BufferBuilder b, Matrix4f m,
-        float x0, float y0, float x1, float y1, Icon icon, float ox, float oy, int color)
-    {
-        float u00 = checkboardU(icon, x0, ox), v00 = checkboardV(icon, y0, oy);
-        float u10 = checkboardU(icon, x1, ox), v10 = checkboardV(icon, y0, oy);
-        float u11 = checkboardU(icon, x1, ox), v11 = checkboardV(icon, y1, oy);
-        float u01 = checkboardU(icon, x0, ox), v01 = checkboardV(icon, y1, oy);
-
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
-        b.vertex(m, x1, y1, 0F).texture(u11, v11).color(color);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
-        b.vertex(m, x0, y1, 0F).texture(u01, v01).color(color);
-        b.vertex(m, x1, y0, 0F).texture(u10, v10).color(color);
-        b.vertex(m, x0, y0, 0F).texture(u00, v00).color(color);
+        emitRoundedSliceMaskGradH(mesh, this.refreshedui$matrix(), x, y, w, h, r, x, w, cr, cg, cb, endAlpha);
+        this.refreshedui$draw(mesh, this.getRoundedRectMask());
     }
 
     /**
-     * Checkerboard icon tiled inside a filled rounded rectangle. Body uses per-tile subdivision via
-     * {@link #fillCheckerboardTiledRegion} so the checker phase stays aligned; the four corner cells
-     * use the shared mask 2-pass (stamp silhouette, multiply tile) for a smooth AA edge.
+     * Checkerboard icon tiled inside a filled rounded rectangle. The body is cut along tile boundaries so
+     * the checker phase stays aligned; each corner is the tiled icon clipped to a quarter disc
+     * ({@link CheckerMesh}) — the 1.21.1 mask-stamp-and-multiply blend has no GUI pipeline on 1.21.11.
      */
     @Override
     public void roundedIconArea(Icon icon, float x, float y, float w, float h, float radius, int color)
@@ -901,16 +735,16 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
+        Texture texture = BBSModClient.getTextures().getTexture(icon.texture);
         float r = clampRoundedRectRadius(w, h, radius);
 
         if (r < ROUNDED_RECT_MIN_RADIUS)
         {
-            this.texturedArea(BBSModClient.getTextures().getTexture(icon.texture), color, x, y, w, h, icon.x, icon.y, icon.w, icon.h, icon.textureW, icon.textureH);
+            this.texturedArea(texture, color, x, y, w, h, icon.x, icon.y, icon.w, icon.h, icon.textureW, icon.textureH);
 
             return;
         }
 
-        Texture texture = BBSModClient.getTextures().getTexture(icon.texture);
         float x0 = x;
         float y0 = y;
         float x1 = x + w;
@@ -918,53 +752,34 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
         float innerW = w - 2F * r;
         float innerH = h - 2F * r;
 
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        /* Body (5 cells): tiled-correct subdivision preserves checker phase. */
         if (innerW > 0F && innerH > 0F)
         {
-            this.fillCheckerboardTiledRegion(texture, color, x0 + r, y0 + r, innerW, innerH, x, y, icon);
+            CheckerMesh.region(mesh, m, icon, color, x0 + r, y0 + r, innerW, innerH, x, y);
         }
 
         if (innerW > 0F)
         {
-            this.fillCheckerboardTiledRegion(texture, color, x0 + r, y0, innerW, r, x, y, icon);
-            this.fillCheckerboardTiledRegion(texture, color, x0 + r, y1 - r, innerW, r, x, y, icon);
+            CheckerMesh.region(mesh, m, icon, color, x0 + r, y0, innerW, r, x, y);
+            CheckerMesh.region(mesh, m, icon, color, x0 + r, y1 - r, innerW, r, x, y);
         }
 
         if (innerH > 0F)
         {
-            this.fillCheckerboardTiledRegion(texture, color, x0, y0 + r, r, innerH, x, y, icon);
-            this.fillCheckerboardTiledRegion(texture, color, x1 - r, y0 + r, r, innerH, x, y, icon);
+            CheckerMesh.region(mesh, m, icon, color, x0, y0 + r, r, innerH, x, y);
+            CheckerMesh.region(mesh, m, icon, color, x1 - r, y0 + r, r, innerH, x, y);
         }
 
-        /* Corners (4 cells): 2-pass mask × content. */
-        Texture mask = this.getRoundedRectMask();
+        CheckerMesh.corner(mesh, m, icon, color, x0 + r, y0 + r, r, Math.PI, x, y);
+        CheckerMesh.corner(mesh, m, icon, color, x1 - r, y0 + r, r, Math.PI * 1.5, x, y);
+        CheckerMesh.corner(mesh, m, icon, color, x1 - r, y1 - r, r, 0D, x, y);
+        CheckerMesh.corner(mesh, m, icon, color, x0 + r, y1 - r, r, Math.PI * 0.5, x, y);
 
-        /* Pass 1: stamp mask alpha into the four corner quads (overwrites destination). */
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+        RenderPipeline pipeline = PixelArt.getTexturedPipeline(texture);
 
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-        emitRoundedCornersMask(builder, matrix4f, x, y, w, h, r, Colors.WHITE);
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-        this.context.draw();
-
-        /* Pass 2: multiply icon RGB into the stamped corner pixels; preserve alpha from pass 1. */
-        RenderSystem.blendFuncSeparate(
-            GlStateManager.SrcFactor.DST_COLOR, GlStateManager.DstFactor.ZERO,
-            GlStateManager.SrcFactor.ZERO, GlStateManager.DstFactor.ONE);
-        RenderSystem.setShaderTexture(0, texture.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-
-        builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-        emitRoundedCornersChecker(builder, matrix4f, x, y, w, h, r, icon, x, y, color);
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-        this.context.draw();
-
-        RenderSystem.defaultBlendFunc();
+        mesh.draw(this.context, pipeline == null ? RenderPipelines.GUI_TEXTURED : pipeline, texture);
     }
 
     /* === Filled circle (3.5) === procedural circular SDF mask sampled as one quad. */
@@ -1046,7 +861,7 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     /**
      * Filled circle (single color). Single textured quad sampling a procedural circular SDF mask —
      * silhouette is fully mask-defined, AA stays crisp at any radius. The {@code segments}
-     * parameter is kept for API compatibility but is ignored (the geometry is always 2 triangles).
+     * parameter is kept for API compatibility but is ignored (the geometry is always one quad).
      */
     @Override
     public void filledCircle(float cx, float cy, float radius, int color, int segments)
@@ -1056,28 +871,10 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
             return;
         }
 
-        Texture mask = this.getFilledCircleMask();
-        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
 
-        float x0 = cx - radius;
-        float y0 = cy - radius;
-        float x1 = cx + radius;
-        float y1 = cy + radius;
-
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, mask.id);
-        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
-
-        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color);
-        builder.vertex(matrix4f, x1, y1, 0F).texture(1F, 1F).color(color);
-        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color);
-        builder.vertex(matrix4f, x0, y1, 0F).texture(0F, 1F).color(color);
-        builder.vertex(matrix4f, x1, y0, 0F).texture(1F, 0F).color(color);
-        builder.vertex(matrix4f, x0, y0, 0F).texture(0F, 0F).color(color);
-
-        { BuiltBuffer built = builder.endNullable(); if (built != null) BufferRenderer.drawWithGlobalProgram(built); }
-
-        this.context.draw();
+        emitMaskQuad(mesh, m, cx - radius, cy - radius, cx + radius, cy + radius, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color);
+        this.refreshedui$draw(mesh, this.getFilledCircleMask());
     }
 }
