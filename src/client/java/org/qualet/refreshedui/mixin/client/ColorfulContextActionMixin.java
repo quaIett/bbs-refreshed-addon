@@ -20,8 +20,8 @@ import org.spongepowered.asm.mixin.Shadow;
  *     <li><b>Active toggles</b> — bind-to-editor, lock-layout, the current option of a {@code UIChoiceMenu}
  *     (e.g. the clip's current type in the convert menu). Their colour is the accent
  *     ({@code BBSSettings.primaryColor(0)}) and the marker means "this one is ON", so it must stay visible
- *     at rest: a persistent selection frame (bright stroke + muted fill), adjacent ones merged into one block
- *     via {@link SelectionMerge} / {@link UIActionListMixin}.</li>
+ *     at rest: a solid rounded fill in that colour (no stroke — the mockup keeps the row flat), adjacent
+ *     ones merged into one block via {@link SelectionMerge} / {@link UIActionListMixin}.</li>
  *     <li><b>Tagged rows</b> — every clip type in the add/convert menus, colour-tagged copy actions. The
  *     colour is a category, not a state, so a whole list of them lit at once was noise (see the design
  *     mockup): at rest they draw NOTHING here — the tint lives in the icon instead
@@ -29,6 +29,9 @@ import org.spongepowered.asm.mixin.Shadow;
  *     rounded wash, no stroke, no colour (the icon already says which row it is) — the same hover every
  *     plain entry gets ({@link ContextActionMixin}).</li>
  * </ul>
+ *
+ * <p>Both flavours share one path: an optional resting fill, then the one hover wash laid over whatever is
+ * there. A hovered active toggle therefore reads as its fill, lifted a notch — no second colour scheme.</p>
  */
 @Mixin(ColorfulContextAction.class)
 public abstract class ColorfulContextActionMixin
@@ -38,8 +41,8 @@ public abstract class ColorfulContextActionMixin
 
     /**
      * @author refreshedui
-     * @reason Rounded selection frame (bright stroke + muted fill) instead of the square accent bar +
-     *         gradient; tagged (non-accent) rows get a plain grey hover wash instead.
+     * @reason Flat rounded fill for active toggles instead of the square accent bar + gradient; tagged
+     *         (non-accent) rows draw nothing at rest; hover is one grey wash for both.
      */
     @Overwrite
     protected void renderBackground(UIContext context, int x, int y, int w, int h, boolean hover, boolean selected)
@@ -48,14 +51,20 @@ public abstract class ColorfulContextActionMixin
 
         if (refreshedui$isActiveToggle(this.color))
         {
-            RoundedAreas.renderSelectionFrameVertical(context.batcher, x, y, w, h, this.color, radius,
-                !SelectionMerge.top(), !SelectionMerge.bottom(), hover);
+            int fill = Colors.mulRGB(Colors.A100 | (this.color & Colors.RGB), ACTIVE_FILL_DARKEN);
+
+            RoundedAreas.roundedBoxVertical(context.batcher, x, y, w, h, radius, fill,
+                !SelectionMerge.top(), !SelectionMerge.bottom());
         }
-        else if (hover)
+
+        if (hover)
         {
             RoundedAreas.renderMenuHover(context.batcher, x, y, w, h, radius);
         }
     }
+
+    /** Active fill brightness vs the accent — muted so white text on it stays legible (per the mockup). */
+    private static final float ACTIVE_FILL_DARKEN = 0.6F;
 
     /** The accent colour is what {@code ContextMenuManager.action(..., highlight=true, ...)} stamps on ON entries. */
     private static boolean refreshedui$isActiveToggle(int color)
