@@ -69,7 +69,13 @@ public final class MaterialField
         }
 
         float focus = Easings.outCubic(state.focus);
-        int color = Colors.lerp(ON_SURFACE_VARIANT, Colors.A100 | BBSSettings.primaryColor.get(), focus);
+        /* No resting line (user pick): the indicator only exists while active, fading in with focus. */
+        if (focus <= 0F)
+        {
+            return;
+        }
+
+        int color = Colors.setA(BBSSettings.primaryColor.get(), focus);
 
         /* Indicator thickness in FRAMEBUFFER pixels (1px rest -> 2px focused), not GUI pixels, so it stays a
          * hairline at any UI scale. */
