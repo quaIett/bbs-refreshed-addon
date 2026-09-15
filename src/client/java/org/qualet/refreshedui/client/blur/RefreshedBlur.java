@@ -66,8 +66,28 @@ public final class RefreshedBlur
     /** Set when the chain failed to build, so a broken shader costs one stack trace and BBS's blur takes over. */
     private static boolean broken;
 
+    /** Below this standard deviation the blur is invisible; drawing it would only cost passes. */
+    private static final float MIN_SIGMA = 0.5F;
+
+    /**
+     * Multiplier on the blur strength for the blur applied now (1 = full). Temporary fix for BBS removing the blur
+     * at once when an overlay closes: {@code UIOverlayMixin} sets it to the overlay's visibility while the close
+     * animation plays, so the blur thins out together with the panel and the dimming.
+     */
+    private static float strength = 1F;
+
     private RefreshedBlur()
     {}
+
+    public static void beginStrength(float value)
+    {
+        strength = Math.max(0F, Math.min(1F, value));
+    }
+
+    public static void endStrength()
+    {
+        strength = 1F;
+    }
 
     public static boolean enabled()
     {
@@ -92,7 +112,14 @@ public final class RefreshedBlur
         }
 
         /* BBS's box of half-width R is 2R + 1 wide: sigma^2 = ((2R + 1)^2 - 1) / 12 */
-        float target = (float) Math.sqrt(radius * (radius + 1) / 3D);
+        float target = (float) Math.sqrt(radius * (radius + 1) / 3D) * strength;
+
+        if (target < MIN_SIGMA)
+        {
+            /* Nothing visible left to draw, but the blur still counts as done: BBS must not draw its own */
+            return true;
+        }
+
         int n = pickLevels(target);
         float offset = pickOffset(n, target);
 

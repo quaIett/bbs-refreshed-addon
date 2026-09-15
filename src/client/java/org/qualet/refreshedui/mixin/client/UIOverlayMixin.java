@@ -11,6 +11,7 @@ import mchorse.bbs_mod.utils.colors.Colors;
 import org.joml.Vector2i;
 import org.qualet.refreshedui.client.anim.Animations;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
+import org.qualet.refreshedui.client.blur.RefreshedBlur;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -80,5 +81,28 @@ public abstract class UIOverlayMixin
     private void refreshedui$fadeBackdrop(Area area, Batcher2D batcher, int color)
     {
         area.render(batcher, Colors.mulA(color, OverlayReveal.visibility((UIElement) (Object) this)));
+    }
+
+    /**
+     * Temporary fix for the blur behind a closing overlay: BBS has no close transition, so while our close
+     * animation keeps the overlay alive the blur would stay at full strength and vanish at once on detach.
+     * Scale it by the overlay's visibility instead, so it fades out with the panel and the dimming. Refreshed
+     * Blur only — BBS's own box blur takes an integer radius and is left as is.
+     */
+    @Inject(method = "render", at = @At("HEAD"))
+    private void refreshedui$fadeBlurOnClose(UIContext context, CallbackInfo ci)
+    {
+        UIOverlay self = (UIOverlay) (Object) this;
+
+        if (OverlayReveal.isClosing(self))
+        {
+            RefreshedBlur.beginStrength(OverlayReveal.visibility(self));
+        }
+    }
+
+    @Inject(method = "render", at = @At("RETURN"))
+    private void refreshedui$resetBlurStrength(UIContext context, CallbackInfo ci)
+    {
+        RefreshedBlur.endStrength();
     }
 }
