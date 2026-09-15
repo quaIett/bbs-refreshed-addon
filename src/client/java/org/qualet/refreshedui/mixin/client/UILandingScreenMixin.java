@@ -17,7 +17,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -77,6 +79,20 @@ public abstract class UILandingScreenMixin
         int border = Colors.mulRGB(BBSSettings.primaryColor.get() | Colors.A100, 0.7F);
 
         ((IRoundedBatcher) context.batcher).roundedOutlineOver(area.x, area.y, area.w, area.h, UICornerRadii.interfaceChrome(), border, refreshedui$backdropColor());
+    }
+
+    /**
+     * Vertical crop anchor of the cover-fitted banner (the 440x180 slot is wider than a 16:9 image, so the
+     * image is cropped top/bottom). Stock centres the crop (0.5); a smaller anchor shows more of the image's
+     * top, which moves the artwork DOWN inside the slot. 0 = top edge of the image, 1 = bottom edge.
+     */
+    @Unique
+    private static final float refreshedui$BANNER_CROP_ANCHOR = 0F;
+
+    @ModifyConstant(method = "renderBannerImage", constant = @Constant(floatValue = 0.5F, ordinal = 0))
+    private float refreshedui$bannerCropAnchor(float original)
+    {
+        return refreshedui$BANNER_CROP_ANCHOR;
     }
 
     @Inject(method = "renderBannerCaption", at = @At("HEAD"), cancellable = true)
