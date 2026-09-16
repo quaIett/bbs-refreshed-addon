@@ -5,13 +5,29 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
+import mchorse.bbs_mod.ui.utils.UIConstants;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Rounds the film-editor replays panel's toolbar bar background (3.2b). */
+/**
+ * Film-editor replays panel: rounds the toolbar bar background (3.2b) and shrinks the search
+ * field from the bar's full height to the standard control height (same as the replay
+ * properties' label/name textboxes), centred vertically in the bar.
+ */
 @Mixin(UIReplaysListPanel.class)
 public abstract class UIReplaysListPanelMixin
 {
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void refreshedui$searchHeight(CallbackInfo ci)
+    {
+        ((UIReplaysListPanel) (Object) this).search
+            .y(0.5F, 0)
+            .h(UIConstants.CONTROL_HEIGHT)
+            .anchorY(0.5F);
+    }
+
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V")
