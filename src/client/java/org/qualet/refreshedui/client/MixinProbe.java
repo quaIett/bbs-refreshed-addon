@@ -79,6 +79,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.framework.elements.overlay.UIOverlayPanel",
         "mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D",
         "mchorse.bbs_mod.ui.framework.elements.utils.UITabStrip",
+        "mchorse.bbs_mod.ui.framework.notifications.UINotifications",
         "mchorse.bbs_mod.ui.framework.tooltips.UITooltip",
         "mchorse.bbs_mod.ui.framework.tooltips.styles.DarkTooltipStyle",
         "mchorse.bbs_mod.ui.framework.tooltips.styles.LightTooltipStyle",
