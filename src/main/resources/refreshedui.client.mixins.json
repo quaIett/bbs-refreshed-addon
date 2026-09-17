@@ -46,6 +46,7 @@
         "UIIconsMixin",
         "UIItemsMixin",
         "UILabelFormPanelMixin",
+        "UINotificationsMixin",
         "UINumericInputMixin",
         "InterfaceBlurMixin",
         "UIOverlayMixin",
