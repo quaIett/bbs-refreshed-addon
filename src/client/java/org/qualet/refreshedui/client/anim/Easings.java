@@ -14,6 +14,7 @@ public final class Easings
     public static final Easing OUT_QUART = Easings::outQuart;
     public static final Easing OUT_EXPO = Easings::outExpo;
     public static final Easing IN_OUT_CUBIC = Easings::inOutCubic;
+    public static final Easing IN_OUT_QUAD = Easings::inOutQuad;
 
     private static float clamp01(float t)
     {
@@ -54,5 +55,19 @@ public final class Easings
         return t < 0.5F
             ? 4F * t * t * t
             : 1F - (float) Math.pow(-2F * t + 2F, 3F) / 2F;
+    }
+
+    public static float inOutQuad(float t)
+    {
+        t = clamp01(t);
+
+        if (t < 0.5F)
+        {
+            return 2F * t * t;
+        }
+
+        float u = -2F * t + 2F;
+
+        return 1F - u * u / 2F;
     }
 }
