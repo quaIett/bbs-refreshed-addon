@@ -2,6 +2,10 @@ accessWidener v2 named
 
 # Reuse vanilla's glyph provider to build our own font-id-pinned TextRenderer (RefreshedFont).
 accessible	field	net/minecraft/client/font/TextRenderer	fonts	Lnet/minecraft/client/font/TextRenderer$GlyphsProvider;
+# Caxton casts TextRenderer.fonts to FontManager.Fonts, so our pinned provider must extend it.
+extendable	class	net/minecraft/client/font/FontManager$Fonts
+accessible	method	net/minecraft/client/font/FontManager$Fonts	<init>	(Lnet/minecraft/client/font/FontManager;Z)V
+accessible	field	net/minecraft/client/MinecraftClient	fontManager	Lnet/minecraft/client/font/FontManager;
 
 # Record the addon's own elements (GuiTexturedMesh) into the deferred GUI, clipped like everything else.
 accessible	field	net/minecraft/client/gui/DrawContext	state	Lnet/minecraft/client/gui/render/state/GuiRenderState;

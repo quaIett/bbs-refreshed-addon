@@ -2,6 +2,7 @@ package org.qualet.refreshedui.client.font;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.EffectGlyph;
+import net.minecraft.client.font.FontManager;
 import net.minecraft.client.font.GlyphProvider;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.StyleSpriteSource;
@@ -51,9 +52,17 @@ public final class RefreshedFont
         }
 
         TextRenderer.GlyphsProvider base = vanilla.fonts;
+
+        /* Caxton 0.9 casts TextRenderer.fonts to FontManager.Fonts (for its outer FontManager), so the
+         * pinned provider has to be a Fonts subclass rather than a bare GlyphsProvider. */
+        if (!(base instanceof FontManager.Fonts))
+        {
+            return vanilla;
+        }
+
         StyleSpriteSource pinned = new StyleSpriteSource.Font(FONT_ID);
 
-        renderer = new TextRenderer(new TextRenderer.GlyphsProvider()
+        renderer = new TextRenderer(mc.fontManager.new Fonts(false)
         {
             @Override
             public GlyphProvider getGlyphs(StyleSpriteSource source)
@@ -67,6 +76,8 @@ public final class RefreshedFont
                 return base.getRectangleGlyph();
             }
         });
+
+        CaxtonFontPin.pin(renderer, FONT_ID);
 
         return renderer;
     }
