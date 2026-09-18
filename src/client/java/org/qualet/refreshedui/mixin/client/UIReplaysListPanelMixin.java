@@ -14,15 +14,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Film-editor replays panel: rounds the toolbar bar background (3.2b) and shrinks the search
  * field from the bar's full height to the standard control height (same as the replay
- * properties' label/name textboxes), centred vertically in the bar.
+ * properties' label/name textboxes), centred vertically in the bar. The field also keeps the
+ * same 2px gap to the bar's right edge as it has to the add button on its left.
  */
 @Mixin(UIReplaysListPanel.class)
 public abstract class UIReplaysListPanelMixin
 {
+    /* Mirrors UIReplaysListPanel's private BAR_ICON_SIZE / BAR_ICON_MARGIN. */
+    private static final int REFRESHEDUI$ICON_SIZE = 20;
+    private static final int REFRESHEDUI$MARGIN = 2;
+
     @Inject(method = "<init>", at = @At("TAIL"))
     private void refreshedui$searchHeight(CallbackInfo ci)
     {
         ((UIReplaysListPanel) (Object) this).search
+            .w(1F, -REFRESHEDUI$ICON_SIZE - REFRESHEDUI$MARGIN * 2)
             .y(0.5F, 0)
             .h(UIConstants.CONTROL_HEIGHT)
             .anchorY(0.5F);
