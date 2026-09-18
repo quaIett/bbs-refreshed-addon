@@ -1,9 +1,13 @@
 package org.qualet.refreshedui.mixin.client;
 
+import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.UISection;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
+import mchorse.bbs_mod.ui.framework.elements.utils.FontRenderer;
+import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.ui.utils.icons.Icon;
 import org.qualet.refreshedui.client.anim.SectionReveal;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -25,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * instead of popping — but only visually: the reserved space is unchanged, so the sections below do not move
  * until a collapse completes. The {@code HEAD} inject detaches the body for real at the end of a collapse,
  * before the children loop runs, so the structural change cannot corrupt the iteration. The header (arrow +
- * title) draws on top, untouched.</p>
+ * title) draws on top; its title is centred on the header strip and the fold arrow is dropped (see {@link #refreshedui$centredHeader}).</p>
  */
 @Mixin(UISection.class)
 public abstract class UISectionMixin
@@ -53,5 +57,27 @@ public abstract class UISectionMixin
 
         ((IRoundedBatcher) batcher).roundedBox(x1, y1, w, h,
             UICornerRadii.interfaceChromeClamped((int) w, (int) h), color);
+    }
+
+    /**
+     * The section's own header only (the settings overlay's category headers share the static
+     * {@code renderHeader} and stay left-aligned): no fold arrow, the title centred on the whole
+     * strip without a text shadow. The whole strip still toggles the section, the arrow was only a hint.
+     */
+    @Redirect(
+        method = "renderHeader(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/framework/elements/utils/UILabel;)V",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/UISection;renderHeader(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/ui/utils/Area;Lmchorse/bbs_mod/l10n/keys/IKey;Lmchorse/bbs_mod/ui/utils/icons/Icon;Ljava/lang/Boolean;I)V")
+    )
+    private void refreshedui$centredHeader(UIContext context, Area area, IKey title, Icon icon, Boolean expanded, int color)
+    {
+        FontRenderer font = context.batcher.getFont();
+        String label = font.limitToWidth(title.get(), area.w);
+        /* Stock passes the title row one pixel taller to sink left-aligned text a row below centre;
+         * centred in the card that pixel shows, so centre on the real row height instead. */
+        int y = area.y + (area.h - 1 - font.getHeight()) / 2;
+
+        /* No shadow, like the refreshed buttons: the 1px right/down shadow visibly drags a centred
+         * title off centre. Same centring formula as UIButton's label. */
+        context.batcher.text(label, area.mx(font.getWidth(label)), y, color, false);
     }
 }
