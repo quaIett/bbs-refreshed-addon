@@ -121,7 +121,13 @@ public final class RoundedAreas
      */
     public static void renderMenuHover(Batcher2D batcher, float x, float y, float w, float h, float radius)
     {
-        ((IRoundedBatcher) batcher).roundedBox(x, y, w, h, radius, Colors.setA(MENU_HOVER_RGB, MENU_HOVER_ALPHA));
+        renderMenuHover(batcher, x, y, w, h, radius, 1F);
+    }
+
+    /** The same wash at {@code strength} (0..1) of its resting alpha — a hover fading in or out. */
+    public static void renderMenuHover(Batcher2D batcher, float x, float y, float w, float h, float radius, float strength)
+    {
+        ((IRoundedBatcher) batcher).roundedBox(x, y, w, h, radius, Colors.setA(MENU_HOVER_RGB, MENU_HOVER_ALPHA * strength));
     }
 
     private static final int MENU_HOVER_RGB = 0xe8e8e8;

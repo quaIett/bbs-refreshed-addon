@@ -4,6 +4,7 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.framework.elements.utils.RowStyle;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.HoverFade;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,6 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *   <li>a row's own colour keeps a slim pill down its left edge, so coloured rows (tracks, categories) keep meaning;</li>
  *   <li>drop target: accent at 35%; grid cells: the same fills, and the chosen cell's bottom bar a slim pill.</li>
  * </ul>
+ * A {@code row}'s hover fades in and out ({@link HoverFade}); {@code hover} is only called while hovered, so
+ * the washes painted through it stay instant.
  * Call sites that redirect {@code RowStyle} themselves ({@code UIListMixin} — merged multi-selection,
  * {@code ContextActionMixin}) keep their own styling.
  */
@@ -51,13 +54,16 @@ public abstract class RowStyleMixin
             refreshedui$fill(batcher, x, y, w, h, Colors.A25 | tint);
         }
 
+        /* Every row passes through here on every frame, hovered or not, so the hover can fade both ways */
+        float level = HoverFade.levelRect(x, y, w, h, hover);
+
         if (picked)
         {
-            refreshedui$fill(batcher, x, y, w, h, (hover ? Colors.A75 : Colors.A50) | accent);
+            refreshedui$fill(batcher, x, y, w, h, Colors.setA(accent, 0.5F + 0.25F * level));
         }
-        else if (hover)
+        else if (level > 0F)
         {
-            refreshedui$fill(batcher, x, y, w, h, Colors.A25 | tint);
+            refreshedui$fill(batcher, x, y, w, h, Colors.setA(tint, 0.25F * level));
         }
 
         if (color != 0)

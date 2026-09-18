@@ -4,6 +4,7 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.utils.context.ColorfulContextAction;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.HoverFade;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.SelectionMerge;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -57,9 +58,12 @@ public abstract class ColorfulContextActionMixin
                 !SelectionMerge.top(), !SelectionMerge.bottom());
         }
 
-        if (hover)
+        /* Fades like every other entry's hover (see ContextActionMixin) */
+        float level = HoverFade.level(HoverFade.MENU, this, hover);
+
+        if (level > 0F)
         {
-            RoundedAreas.renderMenuHover(context.batcher, x, y, w, h, radius);
+            RoundedAreas.renderMenuHover(context.batcher, x, y, w, h, radius, level);
         }
     }
 
