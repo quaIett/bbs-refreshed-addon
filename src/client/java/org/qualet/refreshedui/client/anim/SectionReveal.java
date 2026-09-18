@@ -6,6 +6,7 @@ import mchorse.bbs_mod.ui.framework.elements.UISection;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Drives the collapsible {@code UISection} unfold/fold animation. When a section expands or collapses, its
@@ -38,8 +39,35 @@ public final class SectionReveal
     /** Bodies currently animating, keyed by identity. Finished expands are dropped lazily in {@link #reveal}. */
     private static final Map<UIElement, Reveal> active = new IdentityHashMap<>();
 
+    /**
+     * How recently a section must have been drawn for a fold change to animate. A panel rebuild (window
+     * resize, editor refresh, {@code remember} restoring a saved fold) creates fresh sections and sets their
+     * fold before they are ever drawn — those must snap straight to their state, not play a fold/unfold.
+     */
+    private static final long ON_SCREEN_MS = 250L;
+
+    /** Last render time of each section body, weakly keyed so rebuilt-away panels are not retained. */
+    private static final Map<UIElement, Long> lastRender = new WeakHashMap<>();
+
     private SectionReveal()
     {}
+
+    /** Stamp {@code body}'s section as on screen right now. Called from the section's render head. */
+    public static void markRendered(UIElement body)
+    {
+        if (body != null)
+        {
+            lastRender.put(body, System.currentTimeMillis());
+        }
+    }
+
+    /** Whether {@code body}'s section is actually visible to the user, i.e. was drawn a moment ago. */
+    private static boolean onScreen(UIElement body)
+    {
+        Long t = lastRender.get(body);
+
+        return t != null && System.currentTimeMillis() - t <= ON_SCREEN_MS;
+    }
 
     /** Total time until the last of {@code rows} rows has fully settled (same for expand and collapse). */
     public static long totalMs(int rows)
@@ -55,8 +83,14 @@ public final class SectionReveal
     /** Arm an expand reveal for a section body. No-op while animations are disabled. */
     public static void onExpand(UIElement body)
     {
-        if (body == null || !Animations.enabled())
+        if (body == null || !Animations.enabled() || !onScreen(body))
         {
+            /* Not animating: drop any fold still playing so the body does not keep a stale collapse. */
+            if (body != null)
+            {
+                active.remove(body);
+            }
+
             return;
         }
 
@@ -70,8 +104,13 @@ public final class SectionReveal
      */
     public static boolean onCollapse(UIElement body)
     {
-        if (body == null || !Animations.enabled())
+        if (body == null || !Animations.enabled() || !onScreen(body))
         {
+            if (body != null)
+            {
+                active.remove(body);
+            }
+
             return false;
         }
 
