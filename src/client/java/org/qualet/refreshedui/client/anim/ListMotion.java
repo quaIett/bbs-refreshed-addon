@@ -500,7 +500,7 @@ public final class ListMotion
         int originY = list.area.y - (int) list.scroll.getScroll();
 
         this.ghostY = context.mouseY - s / 2 - originY;
-        this.ghostX = context.mouseX + 6 - list.area.x;
+        this.ghostX = 0; /* UIListMixin keeps the ghost in the list's column */
     }
 
     /** Carried rows land: from the cursor into their slot. */

@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -36,7 +37,8 @@ import java.util.List;
  *
  * <p>Motion: row hovers fade ({@link HoverFade}), and every list carries a {@link ListMotion} — the pick
  * slides between rows, folders unfold, dragged rows open a gap. It is updated at the head of
- * {@code renderList}, which it takes over while rows are moving, and turns the fold arrows.</p>
+ * {@code renderList}, which it takes over while rows are moving, and turns the fold arrows. A dragged row
+ * only travels up and down: its ghost stays in the list's column.</p>
  */
 @Mixin(UIList.class)
 public abstract class UIListMixin implements IListMotionHost
@@ -96,6 +98,17 @@ public abstract class UIListMixin implements IListMotionHost
             motion.render(self, this, context);
             ci.cancel();
         }
+    }
+
+    /**
+     * The drag ghost keeps to the list's column: rows only reorder up and down, so the carried row follows
+     * the cursor vertically and stays where it was drawn horizontally (stock puts it at {@code mouseX + 6}).
+     * The first {@code int} stored is the dragged index, the second the ghost's x.
+     */
+    @ModifyVariable(method = "renderDragGhost", at = @At("STORE"), ordinal = 1)
+    private int refreshedui$verticalGhost(int x)
+    {
+        return ((UIList<?>) (Object) this).area.x;
     }
 
     /**
