@@ -52,6 +52,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.forms.editors.panels.UILabelFormPanel",
         "mchorse.bbs_mod.ui.forms.editors.panels.UIModelIKFormPanel",
         "mchorse.bbs_mod.ui.forms.editors.panels.UIModelPhysicsFormPanel",
+        "mchorse.bbs_mod.ui.framework.UIContext",
         "mchorse.bbs_mod.ui.framework.elements.UIElement",
         "mchorse.bbs_mod.ui.framework.elements.UISection",
         "mchorse.bbs_mod.ui.framework.elements.buttons.UIButton",
