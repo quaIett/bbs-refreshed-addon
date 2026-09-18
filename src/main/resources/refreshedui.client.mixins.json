@@ -17,6 +17,7 @@
         "TextboxMixin",
         "UIActionListMixin",
         "UIButtonMixin",
+        "UIClickableMixin",
         "UICirculateMixin",
         "UIClipMixin",
         "UIClipRendererMixin",
