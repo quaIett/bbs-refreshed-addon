@@ -3,9 +3,11 @@ package org.qualet.refreshedui.mixin.client;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Scroll;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
+import org.qualet.refreshedui.client.ui.IHiddenScroll;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -17,12 +19,38 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p>{@code bar} is a full-method replacement via {@code @Inject(HEAD, cancellable)} (see OVERWRITES.md).
  * When rounding is off it falls back to the old {@code surfaceBox} look.</p>
+ *
+ * <p>{@link IHiddenScroll}: a scroll marked hidden turns its scrollbar off and skips
+ * {@code renderScrollbar} entirely, so the primary-colored edge shades BBS draws for a bar-less scroll
+ * do not appear either.</p>
  */
 @Mixin(Scroll.class)
-public abstract class ScrollMixin
+public abstract class ScrollMixin implements IHiddenScroll
 {
     @Shadow
     public boolean dragging;
+
+    @Shadow
+    public boolean scrollbar;
+
+    @Unique
+    private boolean refreshedui$hidden;
+
+    @Override
+    public void refreshedui$hide()
+    {
+        this.refreshedui$hidden = true;
+        this.scrollbar = false;
+    }
+
+    @Inject(method = "renderScrollbar", at = @At("HEAD"), cancellable = true)
+    private void refreshedui$skipHidden(Batcher2D batcher, CallbackInfo ci)
+    {
+        if (this.refreshedui$hidden)
+        {
+            ci.cancel();
+        }
+    }
 
     /** Flat handle colors from master-refreshed (HANDLE_COLOR / HANDLE_ACTIVE_COLOR). */
     @Inject(
