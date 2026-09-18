@@ -36,6 +36,7 @@ public abstract class UISectionMixin
     @Inject(method = "render", at = @At("HEAD"))
     private void refreshedui$finishCollapse(UIContext context, CallbackInfo ci)
     {
+        SectionReveal.markRendered(this.fields);
         SectionReveal.finishCollapseIfDone(this.fields);
     }
 
