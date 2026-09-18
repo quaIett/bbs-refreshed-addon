@@ -1,15 +1,19 @@
 package org.qualet.refreshedui.mixin.client;
 
+import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.context.ColorfulContextAction;
 import mchorse.bbs_mod.ui.utils.context.ContextAction;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.HoverFade;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Context-menu entry hover highlight: a plain rounded neutral grey wash
@@ -17,8 +21,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * colour, so hover reads as a cursor hint and the frame look is reserved for active toggles
  * ({@link ColorfulContextActionMixin}).
  *
- * <p>BBS 2.6 (upstream 29cdbb4cd) draws the hover through {@code RowStyle.hover(batcher, x, y, w, h, color)};
- * the colour argument is ignored on purpose — a hover is the same grey whatever the row is.</p>
+ * <p>BBS 2.6 (upstream 29cdbb4cd) draws the hover through {@code RowStyle.hover(batcher, x, y, w, h, color)}
+ * only while hovered; the background is replaced whole so the wash can fade in and out ({@link HoverFade}).
+ * The row colour is ignored on purpose — a hover is the same grey whatever the row is.</p>
  *
  * <p>Coloured entries ({@link ColorfulContextAction}) also get their icon tinted in the entry's own colour —
  * that is where a tagged row (clip type, colour-coded copy action) now carries its colour at rest, since
@@ -30,13 +35,21 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(ContextAction.class)
 public abstract class ContextActionMixin
 {
-    @Redirect(
-        method = "renderBackground",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/RowStyle;hover(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;IIIII)V")
-    )
-    private void refreshedui$roundHighlight(Batcher2D batcher, int x, int y, int w, int h, int color)
+    /**
+     * The whole background, hovered or not: stock only paints while hovered, and a wash that should fade
+     * out has to be painted on the frames after the pointer left too ({@link HoverFade}).
+     */
+    @Inject(method = "renderBackground", at = @At("HEAD"), cancellable = true)
+    private void refreshedui$roundHighlight(UIContext context, int x, int y, int w, int h, boolean hover, boolean selected, CallbackInfo ci)
     {
-        RoundedAreas.renderMenuHover(batcher, x, y, w, h, UICornerRadii.buttonsAndTrackpads());
+        float level = HoverFade.level(HoverFade.MENU, this, hover);
+
+        if (level > 0F)
+        {
+            RoundedAreas.renderMenuHover(context.batcher, x, y, w, h, UICornerRadii.buttonsAndTrackpads(), level);
+        }
+
+        ci.cancel();
     }
 
     @Redirect(
