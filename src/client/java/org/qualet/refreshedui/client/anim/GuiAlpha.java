@@ -45,6 +45,28 @@ public final class GuiAlpha
         }
     }
 
+    /** Record {@code body} at {@code alpha} of its opacity (the 1.21.11 stand-in for a composited fade). */
+    public static void fade(float alpha, Runnable body)
+    {
+        if (alpha >= 1F)
+        {
+            body.run();
+
+            return;
+        }
+
+        push(alpha);
+
+        try
+        {
+            body.run();
+        }
+        finally
+        {
+            pop();
+        }
+    }
+
     public static boolean active()
     {
         return current < 1F;
