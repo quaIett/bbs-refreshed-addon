@@ -1,19 +1,24 @@
 package org.qualet.refreshedui.mixin.client;
 
 import mchorse.bbs_mod.BBSSettings;
+import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.context.UIContextMenu;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.ContextMenuReveal;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Context menu background (3.2a rounding, 3.6 shadow->outline): a rounded frame with a muted primary
- * border over the raised surface, replacing the drop shadow + flat rounded fill.
+ * border over the raised surface, replacing the drop shadow + flat rounded fill. Also hands a closing
+ * menu to {@link ContextMenuReveal} for its fade-out.
  */
 @Mixin(UIContextMenu.class)
 public abstract class UIContextMenuMixin
@@ -37,5 +42,21 @@ public abstract class UIContextMenuMixin
     )
     private void refreshedui$noShadow(Batcher2D batcher, int left, int top, int right, int bottom, int offset, int opaque, int shadow)
     {
+    }
+
+    /**
+     * The menu on screen is leaving: have {@link ContextMenuReveal} fade a copy of it out. Only the menu
+     * {@code UIContext} points at — the ones parked behind it (and taken down with it) were never visible.
+     */
+    @Inject(method = "removeFromParent", at = @At("HEAD"))
+    private void refreshedui$fadeOut(CallbackInfo ci)
+    {
+        UIContextMenu self = (UIContextMenu) (Object) this;
+        UIContext context = self.getContext();
+
+        if (context != null && context.contextMenu == self && self.hasParent())
+        {
+            ContextMenuReveal.armClose(self);
+        }
     }
 }

@@ -3,9 +3,11 @@ package org.qualet.refreshedui.mixin.client;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.IUIElement;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
+import mchorse.bbs_mod.ui.framework.elements.context.UIContextMenu;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import org.joml.Matrix3x2fStack;
+import org.qualet.refreshedui.client.anim.ContextMenuReveal;
 import org.qualet.refreshedui.client.anim.GuiAlpha;
 import org.qualet.refreshedui.client.anim.SectionReveal;
 import org.spongepowered.asm.mixin.Mixin;
@@ -39,6 +41,12 @@ public abstract class UISectionBodyRevealMixin
     )
     private void refreshedui$revealRow(IUIElement child, UIContext context)
     {
+        /* The one wrap of a child's render there is: a context menu opening plays its pop-in here too */
+        if (child instanceof UIContextMenu menu && ContextMenuReveal.renderOpening(menu, context))
+        {
+            return;
+        }
+
         UIElement parent = (UIElement) (Object) this;
         SectionReveal.Reveal reveal = SectionReveal.reveal(parent);
 

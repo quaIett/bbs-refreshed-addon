@@ -4,6 +4,7 @@ import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import org.qualet.refreshedui.client.anim.ContextMenuReveal;
 import org.qualet.refreshedui.client.anim.OverlayReveal;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
@@ -45,6 +46,16 @@ public abstract class UIElementRenderMixin
         if (context.menu != null && context.menu.overlay == self)
         {
             OverlayReveal.finishClosed(self);
+        }
+    }
+
+    /** Over everything the overlay container holds: the fading copies of context menus that just closed. */
+    @Inject(method = "render", at = @At("RETURN"))
+    private void refreshedui$closingContextMenus(UIContext context, CallbackInfo ci)
+    {
+        if (context.menu != null && context.menu.overlay == (Object) this)
+        {
+            ContextMenuReveal.renderGhosts((UIElement) (Object) this, context);
         }
     }
 }
