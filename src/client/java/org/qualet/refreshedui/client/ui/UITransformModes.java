@@ -6,11 +6,11 @@ import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcons;
 import mchorse.bbs_mod.ui.framework.tooltips.LabelTooltip;
-import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.ui.utils.UIUtils;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.utils.Direction;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.SegmentSlide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +30,8 @@ import java.util.function.IntPredicate;
  * <p>It paints the refreshed look (rounded track + rounded primary active cell + contrast icon)
  * <em>inline</em> rather than relying on {@code UIIconsMixin}: that mixin targets the base
  * {@code renderSkin}, which this class overrides, so it would never run here. The drawing mirrors
- * {@code UIIconsMixin} exactly so the selector matches every other restyled {@code UIIcons}.</p>
+ * {@code UIIconsMixin} exactly so the selector matches every other restyled {@code UIIcons} — the active
+ * mark slides to a newly picked mode ({@link SegmentSlide}) there as well as here.</p>
  */
 public class UITransformModes extends UIIcons
 {
@@ -40,6 +41,9 @@ public class UITransformModes extends UIIcons
 
     /** Right-click handler: receives the cell index, returns whether it consumed the click. */
     private IntPredicate rightClick;
+
+    /** The active-mode mark slides between cells. */
+    private final SegmentSlide slide = new SegmentSlide();
 
     public UITransformModes(Consumer<UIIcons> callback)
     {
@@ -137,25 +141,30 @@ public class UITransformModes extends UIIcons
 
         float cellW = this.area.w / (float) count;
         int hovered = this.hover ? this.modeIndexAt(context.mouseX) : -1;
+        float shown = this.slide.update(this.value);
+        int contrast = UIContrastColor.onPrimary();
+
+        /* Hover first, then the mark on top of it: the mark slides across the cells, and drawn from inside
+         * the cell loop it would bury the icons of the cells it passes on its way */
+        if (hovered >= 0 && hovered != this.value)
+        {
+            int x1 = this.area.x + (int) (hovered * cellW);
+            int x2 = hovered == count - 1 ? this.area.ex() : this.area.x + (int) ((hovered + 1) * cellW);
+
+            context.batcher.box(x1, this.area.y, x2, this.area.ey(), BBSSettings.chromeSurface());
+        }
+
+        RoundedAreas.roundedBox(context.batcher, this.area.x + shown * cellW, this.area.y, cellW, this.area.h, radius, BBSSettings.primaryColor(Colors.A100));
 
         for (int i = 0; i < count; i++)
         {
             int x1 = this.area.x + (int) (i * cellW);
             int x2 = i == count - 1 ? this.area.ex() : this.area.x + (int) ((i + 1) * cellW);
-            boolean active = i == this.value;
             boolean cellHover = i == hovered;
+            int idle = cellHover ? Colors.LIGHTEST_GRAY : Colors.setA(Colors.WHITE, 0.6F);
 
-            if (active)
-            {
-                Area.SHARED.set(x1, this.area.y, x2 - x1, this.area.h);
-                RoundedAreas.renderRounded(Area.SHARED, context.batcher, BBSSettings.primaryColor(Colors.A100), radius);
-            }
-            else if (cellHover)
-            {
-                context.batcher.box(x1, this.area.y, x2, this.area.ey(), BBSSettings.chromeSurface());
-            }
-
-            int color = active ? UIContrastColor.onPrimary() : (cellHover ? Colors.LIGHTEST_GRAY : Colors.setA(Colors.WHITE, 0.6F));
+            /* A glyph turns "chosen" as the mark arrives under it, not the moment the mode changes */
+            int color = SegmentSlide.mix(idle, contrast, SegmentSlide.coverage(shown, i));
             Icon icon = this.icons.get(i);
             float cx = (x1 + x2) / 2F;
             float cy = this.area.my();
