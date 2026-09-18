@@ -93,6 +93,35 @@ public final class OverlaySnapshot
         return true;
     }
 
+    /**
+     * Draw {@code body} as one flat picture at {@code alpha}: through the snapshot when it is available,
+     * otherwise (no target, or a capture already open) through the shader colour — which is only exact
+     * for single-layer content, but never leaves the body undrawn.
+     */
+    public static void fade(UIContext context, float alpha, Runnable body)
+    {
+        if (alpha >= 1F)
+        {
+            body.run();
+
+            return;
+        }
+
+        if (begin(context))
+        {
+            body.run();
+            end(context, alpha);
+
+            return;
+        }
+
+        context.batcher.flush();
+        RenderSystem.setShaderColor(1F, 1F, 1F, Math.max(0F, alpha));
+        body.run();
+        context.batcher.flush();
+        RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
+    }
+
     /** Stop capturing and blend the copy over the screen at {@code alpha} (0 = screen as it was, 1 = copy). */
     public static void end(UIContext context, float alpha)
     {
