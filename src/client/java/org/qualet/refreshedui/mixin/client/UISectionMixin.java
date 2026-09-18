@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * instead of popping — but only visually: the reserved space is unchanged, so the sections below do not move
  * until a collapse completes. The {@code HEAD} inject detaches the body for real at the end of a collapse,
  * before the children loop runs, so the structural change cannot corrupt the iteration. The header (arrow +
- * title) draws on top; its title is centred on the header strip and the fold arrow is dropped (see {@link #refreshedui$centredHeader}).</p>
+ * title) draws on top with no hover tint on the header strip; its title is centred on the header strip and the fold arrow is dropped (see {@link #refreshedui$centredHeader}).</p>
  */
 @Mixin(UISection.class)
 public abstract class UISectionMixin
@@ -58,6 +58,14 @@ public abstract class UISectionMixin
         ((IRoundedBatcher) batcher).roundedBox(x1, y1, w, h,
             UICornerRadii.interfaceChromeClamped((int) w, (int) h), color);
     }
+
+    /** The header strip no longer lifts under the cursor; clicking it still folds the section. */
+    @Redirect(
+        method = "render",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/RowStyle;hover(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;IIIII)V")
+    )
+    private void refreshedui$noHeaderHover(Batcher2D batcher, int x, int y, int w, int h, int color)
+    {}
 
     /**
      * The section's own header only (the settings overlay's category headers share the static
