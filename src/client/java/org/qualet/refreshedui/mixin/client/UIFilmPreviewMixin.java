@@ -11,6 +11,7 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import org.qualet.refreshedui.client.anim.Animations;
 import org.qualet.refreshedui.client.anim.Animator;
 import org.qualet.refreshedui.client.anim.Easings;
+import org.qualet.refreshedui.client.anim.EditorSwitchFade;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,6 +34,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *       {@code UIDashboardPanels.renderHighlight} inject (see {@link UIDashboardPanelsMixin}).</li>
  *   <li>With BBS's "auto-hide preview icons" on, the bar slides down out of the preview and back up
  *       (in-out quad) instead of popping, when interface animations are enabled.</li>
+ *   <li>While the Film panel fades between editors, the world picture glides to its new place instead
+ *       of jumping ({@link EditorSwitchFade}).</li>
  * </ul>
  */
 @Mixin(UIFilmPreview.class)
@@ -94,6 +97,19 @@ public abstract class UIFilmPreviewMixin
         this.recordReplay.active(this.panel.getController().isRecording()).activeColor(active);
         this.recordVideo.active(this.panel.recorder.isRecording()).activeColor(active);
         this.onionSkin.active(this.panel.getController().getOnionSkin().enabled.get()).activeColor(active);
+    }
+
+    /** Editor switch fade: the world picture is drawn gliding from its old place while the switch fades. */
+    @Redirect(
+        method = "render",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;texturedBox(IIFFFFFFFFII)V", ordinal = 0)
+    )
+    private void refreshedui$glideWorldPicture(Batcher2D batcher, int texture, int color, float x, float y, float w, float h, float u1, float v1, float u2, float v2, int textureW, int textureH)
+    {
+        if (!EditorSwitchFade.drawPreview((UIFilmPreview) (Object) this, batcher, texture, color, x, y, w, h, u1, v1, u2, v2, textureW, textureH))
+        {
+            batcher.texturedBox(texture, color, x, y, w, h, u1, v1, u2, v2, textureW, textureH);
+        }
     }
 
     /** 3.10: offset the control bar up from the preview bottom edge. */
