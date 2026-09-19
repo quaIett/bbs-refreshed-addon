@@ -21,3 +21,4 @@
 - The timeline cursor glides to the spot you click.
 - The auto-hidden preview icon bar slides down and up instead of popping.
 - Switching between the camera and replay editors fades, and the preview glides to its new place instead of jumping.
+- A new "Animation duration" slider in the refreshed settings (50–200%) speeds up or slows down all interface animations together.
