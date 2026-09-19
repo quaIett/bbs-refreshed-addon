@@ -71,7 +71,10 @@ public final class Tween
         return this.duration > 0L && now - this.start < this.duration;
     }
 
-    /** Head for {@code target} from the value shown right now; a no-op when already heading there. */
+    /**
+     * Head for {@code target} from the value shown right now; a no-op when already heading there.
+     * {@code durationMs} is the designed length, scaled by {@link Animations#ms(long)}.
+     */
     public void animateTo(float target, long durationMs, Easing easing, long now)
     {
         if (target == this.to)
@@ -89,7 +92,7 @@ public final class Tween
         this.from = this.value(now);
         this.to = target;
         this.start = now;
-        this.duration = durationMs;
+        this.duration = Math.max(1L, Animations.ms(durationMs));
         this.easing = easing;
     }
 

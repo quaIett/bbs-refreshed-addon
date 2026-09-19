@@ -44,12 +44,13 @@ public final class TooltipReveal
         }
 
         long now = Tween.now();
+        long fade = Animations.ms(FADE_MS);
 
         if (owner != current)
         {
             current = owner;
             /* Straight after another tooltip: no wait, no fade — it is the same act of reading */
-            revealAt = now - lastShownMs <= GRACE_MS ? now - FADE_MS : now + DELAY_MS;
+            revealAt = now - lastShownMs <= GRACE_MS ? now - fade : now + DELAY_MS;
         }
 
         if (now < revealAt)
@@ -59,7 +60,7 @@ public final class TooltipReveal
 
         lastShownMs = now;
 
-        float t = (now - revealAt) / (float) FADE_MS;
+        float t = (now - revealAt) / (float) fade;
 
         return t >= 1F ? 1F : Easings.outCubic(t);
     }

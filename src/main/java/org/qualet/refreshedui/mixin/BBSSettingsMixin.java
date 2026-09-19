@@ -4,6 +4,7 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.settings.SettingsBuilder;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
+import mchorse.bbs_mod.settings.values.numeric.ValueInt;
 import mchorse.bbs_mod.ui.utils.icons.Icons;
 import org.qualet.refreshedui.LockedValueBoolean;
 import org.qualet.refreshedui.RefreshedUiAddon;
@@ -39,17 +40,20 @@ public abstract class BBSSettingsMixin
     {
         ValueBoolean tooltips = new ValueBoolean("show_tooltips", false);
         ValueBoolean animations = new ValueBoolean("animations", true);
+        ValueInt animationDuration = new ValueInt("animation_duration", 100, 50, 200);
         ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
         ValueBoolean refreshedBlur = new ValueBoolean("refreshed_blur", true);
         ValueBoolean greyClips = new ValueBoolean("grey_clips", true);
         ValueBoolean caxtonNoticeDismissed = new ValueBoolean("caxton_notice_dismissed", false);
 
+        animationDuration.slider(10);
         caxtonNoticeDismissed.invisible();
 
         ValueGroup group = new ValueGroup("refreshed");
         group.icon = Icons.GEAR;
         group.add(tooltips);
         group.add(animations);
+        group.add(animationDuration);
         group.add(alternativeTrackpads);
         group.add(refreshedBlur);
         group.add(greyClips);
@@ -59,6 +63,7 @@ public abstract class BBSSettingsMixin
 
         RefreshedUiAddon.showTooltips = tooltips;
         RefreshedUiAddon.animations = animations;
+        RefreshedUiAddon.animationDuration = animationDuration;
         RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;
         RefreshedUiAddon.refreshedBlur = refreshedBlur;
         RefreshedUiAddon.greyClips = greyClips;

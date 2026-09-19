@@ -35,10 +35,14 @@ public final class Animator
 
     /**
      * Eased progress in [0, 1] for a sub-tween that begins {@code delayMs} into this timeline and lasts
-     * {@code durationMs}. Returns 0 before the sub-tween starts and 1 once it has completed.
+     * {@code durationMs}. Returns 0 before the sub-tween starts and 1 once it has completed. Both are
+     * designed lengths, scaled by {@link Animations#ms(long)} so staggers stretch with the animation.
      */
     public float progress(long delayMs, long durationMs, Easing easing)
     {
+        delayMs = Animations.ms(delayMs);
+        durationMs = Animations.ms(durationMs);
+
         if (durationMs <= 0L)
         {
             return this.elapsed() >= delayMs ? 1F : 0F;
@@ -59,9 +63,9 @@ public final class Animator
         return easing.ease(t);
     }
 
-    /** True once {@code totalMs} have elapsed since the timeline started. */
+    /** True once the designed {@code totalMs} (scaled by {@link Animations#ms(long)}) have elapsed. */
     public boolean finished(long totalMs)
     {
-        return this.elapsed() >= totalMs;
+        return this.elapsed() >= Animations.ms(totalMs);
     }
 }

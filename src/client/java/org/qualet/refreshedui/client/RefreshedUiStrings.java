@@ -33,6 +33,10 @@ public class RefreshedUiStrings
         set(l10n, "animations-comment",
             "When enabled, UI animations play (e.g. the per-letter text reveal when switching editors). Disable to turn all interface animations off.",
             "Если включено, проигрываются анимации интерфейса (например, посимвольное появление текста при переключении редакторов). Выключите, чтобы отключить все анимации интерфейса.", ru);
+        set(l10n, "animation_duration", "Animation duration", "Длительность анимаций", ru);
+        set(l10n, "animation_duration-comment",
+            "Stretches or shortens every interface animation together, keeping their proportions: 100% plays them as designed, 50% twice as fast, 200% twice as slow. Delays (such as the wait before a tooltip) are not affected.",
+            "Растягивает или сжимает все анимации интерфейса разом, сохраняя их пропорции: 100% — как задумано, 50% — вдвое быстрее, 200% — вдвое медленнее. Задержки (например, ожидание перед подсказкой) не меняются.", ru);
         set(l10n, "alternative_trackpads", "Alternative trackpad layout", "Альтернативный вид трекпадов", ru);
         set(l10n, "alternative_trackpads-comment",
             "When enabled, the transform editor uses the alternative layout: a mode selector (translate / scale / rotate) on top with just the active mode's X/Y/Z trackpads below, instead of all groups at once. Disable to restore the classic always-visible rows. Reopen the editor to apply.",

@@ -131,8 +131,8 @@ public final class HoverFade
 
         state.updated = now;
         state.level = hover
-            ? Math.min(1F, state.level + dt / (float) IN_MS)
-            : Math.max(0F, state.level - dt / (float) OUT_MS);
+            ? Math.min(1F, state.level + dt / (float) Animations.ms(IN_MS))
+            : Math.max(0F, state.level - dt / (float) Animations.ms(OUT_MS));
 
         if (state.level <= 0F && !hover)
         {

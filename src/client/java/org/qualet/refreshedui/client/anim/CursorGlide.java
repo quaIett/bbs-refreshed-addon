@@ -103,12 +103,12 @@ public final class CursorGlide
 
         boolean gliding(long now)
         {
-            return now - this.start < DURATION_MS;
+            return now - this.start < Animations.ms(DURATION_MS);
         }
 
         float shown(long now)
         {
-            float t = (now - this.start) / (float) DURATION_MS;
+            float t = (now - this.start) / (float) Animations.ms(DURATION_MS);
 
             if (t >= 1F)
             {
