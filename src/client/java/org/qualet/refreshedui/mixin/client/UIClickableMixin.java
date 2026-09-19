@@ -66,8 +66,8 @@ public abstract class UIClickableMixin
 
         this.refreshedui$pressAt = now;
         this.refreshedui$press = down
-            ? Math.min(1F, this.refreshedui$press + dt / (float) PRESS_IN_MS)
-            : Math.max(0F, this.refreshedui$press - dt / (float) PRESS_OUT_MS);
+            ? Math.min(1F, this.refreshedui$press + dt / (float) Animations.ms(PRESS_IN_MS))
+            : Math.max(0F, this.refreshedui$press - dt / (float) Animations.ms(PRESS_OUT_MS));
 
         if (this.refreshedui$press <= 0F)
         {

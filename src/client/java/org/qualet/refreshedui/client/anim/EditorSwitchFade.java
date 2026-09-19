@@ -240,7 +240,7 @@ public final class EditorSwitchFade
             return 1F;
         }
 
-        float t = (Tween.now() - start) / (float) DURATION_MS;
+        float t = (Tween.now() - start) / (float) Animations.ms(DURATION_MS);
 
         return t >= 1F ? 1F : Easings.outCubic(t);
     }

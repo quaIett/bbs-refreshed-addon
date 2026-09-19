@@ -10,6 +10,7 @@ import mchorse.bbs_mod.ui.utils.icons.Icons;
 import mchorse.bbs_mod.utils.colors.Color;
 import mchorse.bbs_mod.utils.colors.Colors;
 import mchorse.bbs_mod.utils.interps.Lerps;
+import org.qualet.refreshedui.client.anim.Animations;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -105,7 +106,7 @@ public abstract class UIToggleMixin
             return;
         }
 
-        float t = (System.currentTimeMillis() - this.toggleAnimStartMs) / (float) SWITCH_ANIM_MS;
+        float t = (System.currentTimeMillis() - this.toggleAnimStartMs) / (float) Animations.ms(SWITCH_ANIM_MS);
 
         if (t >= 1F)
         {

@@ -5,6 +5,7 @@ import mchorse.bbs_mod.api.Subscribe;
 import mchorse.bbs_mod.api.events.RegisterSourcePacksEvent;
 import mchorse.bbs_mod.settings.values.core.ValueGroup;
 import mchorse.bbs_mod.settings.values.numeric.ValueBoolean;
+import mchorse.bbs_mod.settings.values.numeric.ValueInt;
 import org.qualet.refreshedui.resources.RefreshedUiAssetsSourcePack;
 
 /**
@@ -22,6 +23,10 @@ public class RefreshedUiAddon implements BBSAddonMod
 
     /** Master switch for all animation-core effects. Default true. Read via {@code client.anim.Animations}. */
     public static ValueBoolean animations;
+
+    /** Length of every interface animation, percent of the designed one (50–200, slider). Default 100.
+     *  Read via {@code client.anim.Animations#ms}. */
+    public static ValueInt animationDuration;
 
     /** Render bounded-range trackpads as the alternative slider view (rail + knob + entry box).
      *  Default true. Read via {@code client.ui.UISliderTrackpadAdapter}. */

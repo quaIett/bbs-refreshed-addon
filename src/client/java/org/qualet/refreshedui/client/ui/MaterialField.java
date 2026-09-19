@@ -5,6 +5,7 @@ import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.utils.colors.Colors;
+import org.qualet.refreshedui.client.anim.Animations;
 import org.qualet.refreshedui.client.anim.Easings;
 import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 
@@ -42,7 +43,7 @@ public final class MaterialField
         {
             long now = System.currentTimeMillis();
             /* First frame (or back after being hidden for a while) snaps instead of animating from stale values. */
-            float step = this.lastMs == 0L ? 1F : Math.min(1F, (now - this.lastMs) / (float) DURATION_MS);
+            float step = this.lastMs == 0L ? 1F : Math.min(1F, (now - this.lastMs) / (float) Animations.ms(DURATION_MS));
 
             this.lastMs = now;
             this.hover = approach(this.hover, hovered ? 1F : 0F, step);
