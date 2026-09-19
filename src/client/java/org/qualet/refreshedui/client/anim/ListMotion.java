@@ -810,14 +810,14 @@ public final class ListMotion
 
         float progress(long now)
         {
-            float t = (now - this.start) / (float) MOVE_MS;
+            float t = (now - this.start) / (float) Animations.ms(MOVE_MS);
 
             return t >= 1F ? 1F : Easings.outCubic(Math.max(0F, t));
         }
 
         boolean done(long now)
         {
-            return now - this.start >= MOVE_MS;
+            return now - this.start >= Animations.ms(MOVE_MS);
         }
     }
 

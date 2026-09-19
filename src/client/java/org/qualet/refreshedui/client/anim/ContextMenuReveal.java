@@ -124,7 +124,7 @@ public final class ContextMenuReveal
         while (it.hasNext())
         {
             Ghost ghost = it.next();
-            float t = (now - ghost.start) / (float) CLOSE_MS;
+            float t = (now - ghost.start) / (float) Animations.ms(CLOSE_MS);
 
             if (t >= 1F || !Animations.enabled())
             {
@@ -194,7 +194,7 @@ public final class ContextMenuReveal
 
         float visibility(long now)
         {
-            float t = (now - this.start) / (float) OPEN_MS;
+            float t = (now - this.start) / (float) Animations.ms(OPEN_MS);
 
             return t >= 1F ? 1F : Easings.outCubic(Math.max(0F, t));
         }

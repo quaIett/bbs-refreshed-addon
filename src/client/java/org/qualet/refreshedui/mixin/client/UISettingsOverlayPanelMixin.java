@@ -8,6 +8,7 @@ import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.UIScrollView;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
+import mchorse.bbs_mod.ui.framework.elements.input.UISliderTrackpad;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import org.qualet.refreshedui.RefreshedUiAddon;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -104,6 +105,15 @@ public abstract class UISettingsOverlayPanelMixin
 
             for (UIElement element : UIValueMap.create(value, (UIElement) (Object) this))
             {
+                if (value == RefreshedUiAddon.animationDuration)
+                {
+                    for (UISliderTrackpad slider : element.getChildren(UISliderTrackpad.class))
+                    {
+                        /* The slider's own value, so the label follows a drag before it is committed */
+                        slider.forcedLabel(() -> Math.round(slider.getValue()) + "%");
+                    }
+                }
+
                 this.options.add(element);
             }
         }
