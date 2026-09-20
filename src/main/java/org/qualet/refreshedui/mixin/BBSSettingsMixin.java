@@ -42,7 +42,6 @@ public abstract class BBSSettingsMixin
         ValueBoolean animations = new ValueBoolean("animations", true);
         ValueInt animationDuration = new ValueInt("animation_duration", 100, 50, 200);
         ValueBoolean alternativeTrackpads = new ValueBoolean("alternative_trackpads", true);
-        ValueBoolean refreshedBlur = new ValueBoolean("refreshed_blur", true);
         ValueBoolean greyClips = new ValueBoolean("grey_clips", true);
         ValueBoolean caxtonNoticeDismissed = new ValueBoolean("caxton_notice_dismissed", false);
 
@@ -55,7 +54,6 @@ public abstract class BBSSettingsMixin
         group.add(animations);
         group.add(animationDuration);
         group.add(alternativeTrackpads);
-        group.add(refreshedBlur);
         group.add(greyClips);
         group.add(caxtonNoticeDismissed);
 
@@ -65,7 +63,6 @@ public abstract class BBSSettingsMixin
         RefreshedUiAddon.animations = animations;
         RefreshedUiAddon.animationDuration = animationDuration;
         RefreshedUiAddon.alternativeTrackpads = alternativeTrackpads;
-        RefreshedUiAddon.refreshedBlur = refreshedBlur;
         RefreshedUiAddon.greyClips = greyClips;
         RefreshedUiAddon.caxtonNoticeDismissed = caxtonNoticeDismissed;
         RefreshedUiAddon.refreshedGroup = group;

@@ -2,8 +2,13 @@
 
 ## 1.3.0
 
+This release requires BBS FS 2.7.
+
 ### Changes
 
+- Refreshed Blur is no longer a setting. BBS 2.7 blurs the background behind panels with the same dual
+  Kawase algorithm, so the addon only keeps the part BBS has no place for: the blur fades out together
+  with a closing overlay panel instead of vanishing at once.
 - Notification toasts are redesigned and now slide down from the top of the screen.
 - The replay search field now has the same height as other controls.
 - Section fold animations now play only for sections that are on screen.

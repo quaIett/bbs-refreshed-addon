@@ -41,10 +41,6 @@ public class RefreshedUiStrings
         set(l10n, "alternative_trackpads-comment",
             "When enabled, the transform editor uses the alternative layout: a mode selector (translate / scale / rotate) on top with just the active mode's X/Y/Z trackpads below, instead of all groups at once. Disable to restore the classic always-visible rows. Reopen the editor to apply.",
             "Если включено, редактор трансформации использует альтернативный вид: сверху селектор режима (перемещение / масштаб / поворот), а ниже только X/Y/Z трекпады активного режима, вместо всех групп сразу. Выключите, чтобы вернуть классические всегда видимые ряды. Переоткройте редактор, чтобы применить.", ru);
-        set(l10n, "refreshed_blur", "Refreshed Blur", "Refreshed Blur", ru);
-        set(l10n, "refreshed_blur-comment",
-            "When enabled, the blur behind panels uses the dual Kawase algorithm: a smoother, softer look for a fraction of the cost, since most of the work happens on downscaled copies of the screen. \"Blur behind panels\" and \"Blur radius\" still decide whether it runs and how strong it is. Disable to use BBS's original box blur.",
-            "Если включено, размытие за панелями использует алгоритм dual Kawase: более плавный и мягкий вид за малую часть стоимости, так как почти вся работа идёт на уменьшенных копиях экрана. «Размытие за панелями» и «Радиус размытия» по-прежнему решают, включено ли оно и насколько сильное. Выключите, чтобы вернуть исходное box-размытие BBS.", ru);
         set(l10n, "grey_clips", "Grey clips", "Серые клипы", ru);
         set(l10n, "grey_clips-comment",
             "When enabled, clips on the camera and action timelines get a neutral grey fill and their type colour moves to the outline; hovered and selected clips light up instead of getting a white frame. Disable to restore BBS's coloured fills.",
