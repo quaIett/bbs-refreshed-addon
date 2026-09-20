@@ -537,6 +537,42 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     }
 
     /**
+     * The corner-cut half of {@link #roundedOutlineOver}, without the ring: the inverted mask repaints
+     * everything beyond the outer curve in {@code outsideColor}, so children that painted square over a
+     * rounded surface get their corners back. Called after the content, hence the flush first.
+     */
+    @Override
+    public void roundedCornerCut(float x, float y, float w, float h, float radius, int outsideColor)
+    {
+        if (w <= 0F || h <= 0F)
+        {
+            return;
+        }
+
+        float r = clampRoundedRectRadius(w, h, radius);
+
+        if (r < ROUNDED_RECT_MIN_RADIUS)
+        {
+            return;
+        }
+
+        Texture mask = this.getRoundedRectMaskInverted();
+        Matrix4f matrix4f = this.context.getMatrices().peek().getPositionMatrix();
+        BufferBuilder builder = Tessellator.getInstance().getBuffer();
+
+        this.context.draw();
+
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderTexture(0, mask.id);
+        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
+        builder.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_TEXTURE_COLOR);
+
+        emitRoundedSliceMask(builder, matrix4f, x, y, w, h, r, Colors.A100 | outsideColor);
+
+        BufferRenderer.drawWithGlobalProgram(builder.end());
+    }
+
+    /**
      * Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap whose
      * flat side meets a straight body. Single draw call, no scissor.
      */

@@ -13,6 +13,9 @@ This release requires BBS FS 2.7.
 - The replay search field now has the same height as other controls.
 - Section fold animations now play only for sections that are on screen.
 - The custom UI font works with Caxton 0.9 on Minecraft 1.21.11.
+- Docked panels are rounded off at the corners again: a panel that paints its own opaque background over
+  the whole slot — the clips and actions timelines, the keyframe editor, the replay editor's category bar —
+  no longer squares them off.
 
 ### Additions
 
