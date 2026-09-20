@@ -546,6 +546,34 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
     }
 
     /**
+     * The corner-cut half of {@link #roundedOutlineOver}, without the ring: the inverted mask repaints
+     * everything beyond the outer curve in {@code outsideColor}, so children that painted square over a
+     * rounded surface get their corners back. Submitted after the content it cuts, like every other mesh.
+     */
+    @Override
+    public void roundedCornerCut(float x, float y, float w, float h, float radius, int outsideColor)
+    {
+        if (w <= 0F || h <= 0F)
+        {
+            return;
+        }
+
+        float r = clampRoundedRectRadius(w, h, radius);
+
+        if (r < ROUNDED_RECT_MIN_RADIUS)
+        {
+            return;
+        }
+
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
+
+        emitRoundedSliceMask(mesh, m, x, y, w, h, r, Colors.A100 | outsideColor);
+
+        this.refreshedui$draw(mesh, this.getRoundedRectMaskInverted());
+    }
+
+    /**
      * Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap whose
      * flat side meets a straight body. Single mesh, no scissor.
      */
