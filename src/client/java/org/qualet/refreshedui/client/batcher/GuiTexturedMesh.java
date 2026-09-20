@@ -1,9 +1,11 @@
 package org.qualet.refreshedui.client.batcher;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import mchorse.bbs_mod.graphics.texture.Texture;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.GpuSampler;
 import net.minecraft.client.gui.ScreenRect;
 import net.minecraft.client.gui.render.state.SimpleGuiElementRenderState;
 import net.minecraft.client.render.VertexConsumer;
@@ -69,6 +71,29 @@ public final class GuiTexturedMesh implements VertexConsumer
         }
 
         context.state.addSimpleElement(new State(pipeline, TextureSetup.of(gpu.getGlTextureView(), gpu.getSampler()),
+            this.xs, this.ys, this.us, this.vs, this.colors, this.count, scissor, bounds));
+    }
+
+    /**
+     * The same, sampling a GPU texture the addon owns rather than one the texture manager knows — an
+     * off-screen target such as the editor-switch frame copy, which has no {@link Identifier}.
+     */
+    public void draw(DrawContext context, RenderPipeline pipeline, GpuTextureView view, GpuSampler sampler)
+    {
+        if (this.count == 0 || view == null)
+        {
+            return;
+        }
+
+        ScreenRect scissor = context.scissorStack.peekLast();
+        ScreenRect bounds = this.computeBounds(scissor);
+
+        if (bounds == null)
+        {
+            return;
+        }
+
+        context.state.addSimpleElement(new State(pipeline, TextureSetup.of(view, sampler),
             this.xs, this.ys, this.us, this.vs, this.colors, this.count, scissor, bounds));
     }
 

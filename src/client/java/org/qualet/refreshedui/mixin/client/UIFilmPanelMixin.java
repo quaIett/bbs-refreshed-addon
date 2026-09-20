@@ -6,10 +6,12 @@ import mchorse.bbs_mod.ui.framework.elements.UIElement;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import org.qualet.refreshedui.client.anim.EditorSwitchFade;
 import org.qualet.refreshedui.client.ui.RoundedAreas;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
 import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -22,11 +24,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *       rounded from here too (via {@code renderPanelSurfaces}), but BBS 2.4 unified the docking
  *       system into {@code UIDockLayout} and dropped that method — those two redirects now live in
  *       {@link UIDockLayoutMixin} and {@link UIDockSlotMixin}.</li>
+ *   <li>Switching between the camera and the replay editor fades instead of cutting, with the preview
+ *       staying opaque and gliding to its new place ({@link EditorSwitchFade}).</li>
  * </ul>
  */
 @Mixin(UIFilmPanel.class)
 public abstract class UIFilmPanelMixin
 {
+    @Shadow
+    private UIElement selectedMainEditorPanel;
+
     @Redirect(
         method = "render",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/Area;render(Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;I)V", ordinal = 0)
@@ -57,5 +64,28 @@ public abstract class UIFilmPanelMixin
         {
             button.active(editor != null && editor.isVisible()).activeColor(UIContrastColor.onPrimary());
         }
+    }
+
+    /** Editor switch fade: the frame on screen before a real switch is copied (Ctrl+Z/Y re-shows the same editor). */
+    @Inject(method = "showPanel(Lmchorse/bbs_mod/ui/framework/elements/UIElement;)V", at = @At("HEAD"))
+    private void refreshedui$captureEditorSwitch(UIElement element, CallbackInfo ci)
+    {
+        if (element != this.selectedMainEditorPanel)
+        {
+            EditorSwitchFade.capture((UIFilmPanel) (Object) this);
+        }
+    }
+
+    @Inject(method = "render(Lmchorse/bbs_mod/ui/framework/UIContext;)V", at = @At("HEAD"))
+    private void refreshedui$editorSwitchFrameStart(UIContext context, CallbackInfo ci)
+    {
+        EditorSwitchFade.beginFrame((UIFilmPanel) (Object) this);
+    }
+
+    /** The fading copy goes over the finished panel, under tooltips and menus drawn after it. */
+    @Inject(method = "render(Lmchorse/bbs_mod/ui/framework/UIContext;)V", at = @At("TAIL"))
+    private void refreshedui$editorSwitchFade(UIContext context, CallbackInfo ci)
+    {
+        EditorSwitchFade.endFrame(context, (UIFilmPanel) (Object) this);
     }
 }
