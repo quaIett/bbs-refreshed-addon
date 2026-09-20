@@ -32,10 +32,6 @@ public class RefreshedUiAddon implements BBSAddonMod
      *  Default true. Read via {@code client.ui.UISliderTrackpadAdapter}. */
     public static ValueBoolean alternativeTrackpads;
 
-    /** When on, BBS's blur behind overlay panels runs as dual Kawase instead of its box blur; BBS's own
-     *  on/off and radius settings still apply. Default true. Read via {@code client.blur.RefreshedBlur}. */
-    public static ValueBoolean refreshedBlur;
-
     /** Timeline clips (camera and action) get a neutral grey fill with the type colour moved to the outline.
      *  Default true. Read via {@code UIClipRendererMixin}. */
     public static ValueBoolean greyClips;

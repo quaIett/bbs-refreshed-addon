@@ -2,13 +2,13 @@ plugins {
 	id 'fabric-loom' version '1.15-SNAPSHOT'
 }
 
-// --- Branch fs-2.6-1.21.11: BBS 2.6 on MC 1.21.11 (Java 21) ---
-// The 1.20.x targets live on fs-2.6 and 1.21.1 on fs-2.6-1.21.1; this branch differs from
-// fs-2.6-1.21.1 by the MC 1.21.11 deferred-GUI render API (GuiRenderState, PostEffectPipeline,
+// --- Branch 1.21.11: BBS FS 2.7 on MC 1.21.11 (Java 21) ---
+// The 1.20.x targets live on master and 1.21.1 on its own branch; this branch differs from
+// 1.21.1 by the MC 1.21.11 deferred-GUI render API (GuiRenderState, PostEffectPipeline,
 // GpuTexture) and this config.
 def mc = (project.findProperty("mc") ?: "1.21.11-fs").toString()
 def MC = [
-	"1.21.11-fs": [mc: "1.21.11", yarn: "1.21.11+build.6", fabric: "0.141.4+1.21.11", bbs: "bbs-2.6-1.21.11.jar", pin: "1.21.11", suffix: "fs2.6-1.21.11"],
+	"1.21.11-fs": [mc: "1.21.11", yarn: "1.21.11+build.6", fabric: "0.141.4+1.21.11", bbs: "bbs-2.7-1.21.11.jar", pin: "1.21.11", suffix: "fs2.7-1.21.11"],
 ]
 if (!MC.containsKey(mc)) {
 	throw new GradleException("Unsupported -Pmc=${mc}. Supported: ${MC.keySet().join(', ')}")
@@ -27,6 +27,12 @@ repositories {
 		dirs 'libs'
 	}
 	mavenCentral()
+	maven {
+		url "https://api.modrinth.com/maven"
+		content {
+			includeGroup "maven.modrinth"
+		}
+	}
 }
 
 loom {
@@ -49,6 +55,9 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${mcCfg.fabric}"
 
 	modImplementation files("libs/${mcCfg.bbs}")
+
+	// TEMP: Sodium on the dev client only (not shipped), testing the frozen-picture bug against its NVIDIA workaround
+	modLocalRuntime "maven.modrinth:sodium:mc1.21.11-0.8.7-fabric"
 }
 
 processResources {

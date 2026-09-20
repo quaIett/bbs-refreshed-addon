@@ -1,5 +1,6 @@
 package org.qualet.refreshedui.mixin.client;
 
+import mchorse.bbs_mod.api.client.editor.TrackCategory;
 import mchorse.bbs_mod.ui.film.replays.UIReplaysEditor;
 import mchorse.bbs_mod.ui.framework.elements.buttons.UIIcon;
 import org.qualet.refreshedui.client.ui.UIContrastColor;
@@ -29,14 +30,14 @@ import java.util.Map;
 public abstract class UIReplaysEditorMixin
 {
     @Shadow
-    public Map<UIReplaysEditor.ReplayCategory, UIIcon> tabButtons;
+    public Map<TrackCategory, UIIcon> tabButtons;
 
     @Inject(method = "setCategory", at = @At("TAIL"))
-    private void refreshedui$blackenActiveTab(UIReplaysEditor.ReplayCategory c, CallbackInfo ci)
+    private void refreshedui$blackenActiveTab(TrackCategory c, CallbackInfo ci)
     {
         int activeColor = UIContrastColor.onPrimary();
 
-        for (Map.Entry<UIReplaysEditor.ReplayCategory, UIIcon> entry : this.tabButtons.entrySet())
+        for (Map.Entry<TrackCategory, UIIcon> entry : this.tabButtons.entrySet())
         {
             entry.getValue().active(entry.getKey() == c).activeColor(activeColor);
         }

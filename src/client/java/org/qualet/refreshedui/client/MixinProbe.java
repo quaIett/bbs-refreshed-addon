@@ -89,7 +89,6 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.framework.tooltips.styles.LightTooltipStyle",
         "mchorse.bbs_mod.ui.model_blocks.UIModelBlockPanel",
         "mchorse.bbs_mod.ui.selectors.UISelectorsOverlayPanel",
-        "mchorse.bbs_mod.ui.utils.InterfaceBlur",
         "mchorse.bbs_mod.ui.utils.Scroll",
         "mchorse.bbs_mod.ui.utils.context.ColorfulContextAction",
         "mchorse.bbs_mod.ui.utils.context.ContextAction",
