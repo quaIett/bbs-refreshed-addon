@@ -28,6 +28,14 @@ public interface IRoundedBatcher
      */
     void roundedOutlineOver(float x, float y, float w, float h, float radius, int borderColor, int outsideColor);
 
+    /**
+     * Only the second pass of {@link #roundedOutlineOver} — no border ring: everything outside the rounded
+     * silhouette (but inside the rect) is repainted in {@code outsideColor}, cutting square content's corners
+     * to the curve. For panels whose children paint opaquely over a rounded surface, so the surface's corners
+     * are restored after the fact. {@code outsideColor} must match whatever is behind the rect.
+     */
+    void roundedCornerCut(float x, float y, float w, float h, float radius, int outsideColor);
+
     /** Like {@link #roundedBox} but only the left and/or right side is rounded — a half-pill cap. */
     void roundedBoxSides(float x, float y, float w, float h, float radius, int color, boolean roundLeft, boolean roundRight);
 
