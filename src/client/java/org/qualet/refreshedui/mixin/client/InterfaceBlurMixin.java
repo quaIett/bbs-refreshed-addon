@@ -1,39 +1,28 @@
 package org.qualet.refreshedui.mixin.client;
 
-import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.ui.utils.InterfaceBlur;
-import org.qualet.refreshedui.client.blur.RefreshedBlur;
+import org.qualet.refreshedui.client.anim.BlurFade;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 /**
- * Swaps the algorithm behind BBS's blur under overlay panels for {@link RefreshedBlur} (dual Kawase) while
- * keeping everything else BBS decides: the on/off setting, the radius, once per frame, and
- * {@code applyUnder} (which only resets {@code applied} after calling {@code apply}). If the Kawase chain
- * cannot be built, the original box blur runs instead.
+ * Fades BBS's background blur out with a closing overlay panel. BBS 2.7 blurs with dual Kawase (adapted from
+ * this addon), so the algorithm itself is no longer ours to supply — only the close transition is, and BBS
+ * has none, so the blur would otherwise hold full strength and vanish at once on detach.
+ *
+ * @see BlurFade
  */
 @Mixin(InterfaceBlur.class)
 public abstract class InterfaceBlurMixin
 {
-    @Shadow private static boolean applied;
-
-    @Shadow private static boolean broken;
-
-    @Inject(method = "apply", at = @At("HEAD"), cancellable = true)
-    private static void refreshedui$kawase(CallbackInfo ci)
+    @ModifyArg(
+        method = "apply",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/utils/InterfaceBlur;render(I)V"),
+        index = 0
+    )
+    private static int refreshedui$fadeRadius(int radius)
     {
-        if (!RefreshedBlur.enabled() || applied || broken || !BBSSettings.interfaceBlur.get())
-        {
-            return;
-        }
-
-        if (RefreshedBlur.render(BBSSettings.interfaceBlurRadius.get()))
-        {
-            applied = true;
-            ci.cancel();
-        }
+        return BlurFade.radius(radius);
     }
 }
