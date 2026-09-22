@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Requires BBS FS 2.7.
+
+### Changed
+
+- The shader options grid of the curve clip (curve fixer, now built into BBS) has rounded cells, frames and value boxes again.
+
 ## 1.3.2
 
 Requires BBS FS 2.7.

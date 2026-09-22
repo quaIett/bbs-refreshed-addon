@@ -46,6 +46,7 @@ public final class MixinProbe
         "mchorse.bbs_mod.ui.film.replays.UIReplayPropertiesPanel",
         "mchorse.bbs_mod.ui.film.replays.UIReplaysEditor",
         "mchorse.bbs_mod.ui.film.replays.UIReplaysListPanel",
+        "mchorse.bbs_mod.ui.film.utils.shader.UIShaderOptionCell",
         "mchorse.bbs_mod.ui.forms.editors.forms.UIForm",
         "mchorse.bbs_mod.ui.forms.editors.panels.UIFramebufferFormPanel",
         "mchorse.bbs_mod.ui.forms.editors.panels.UIGeneralFormPanel",
