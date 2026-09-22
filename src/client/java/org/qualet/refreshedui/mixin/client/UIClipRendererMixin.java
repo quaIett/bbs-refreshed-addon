@@ -37,12 +37,9 @@ public abstract class UIClipRendererMixin
     @Unique
     private static final float CLIP_LIGHTNESS = 0.09F;
 
-    /** How far the fill moves toward white: a faint white wash under the pointer, stronger when selected. */
+    /** How far the fill moves toward white under the pointer. */
     @Unique
     private static final float HOVER_LIFT = 0.12F;
-
-    @Unique
-    private static final float SELECTED_LIFT = 0.24F;
 
     @Unique
     private static final Oklab CLIP_OKLAB = new Oklab();
@@ -77,11 +74,9 @@ public abstract class UIClipRendererMixin
 
     /** Same hover rule as BBS' white hover frame in {@code UIClips}: not selected, not grabbing, no marquee, pointer inside. */
     @Unique
-    private static int refreshedui$fill(UIContext context, UIClips clips, Area area, boolean selected)
+    private static int refreshedui$fill(UIContext context, UIClips clips, Area area)
     {
-        float lift = selected ? SELECTED_LIFT : ((IClipHover) clips).refreshedui$canHover() && area.isInside(context) ? HOVER_LIFT : 0F;
-
-        return lift > 0F ? Colors.lerp(refreshedui$grey(), Colors.WHITE, lift) : refreshedui$grey();
+        return ((IClipHover) clips).refreshedui$canHover() && area.isInside(context) ? Colors.lerp(refreshedui$grey(), Colors.WHITE, HOVER_LIFT) : refreshedui$grey();
     }
 
     @Redirect(
@@ -99,7 +94,7 @@ public abstract class UIClipRendererMixin
     )
     private int refreshedui$greyFill(int color, @Local(argsOnly = true) UIContext context, @Local(argsOnly = true) UIClips clips, @Local(argsOnly = true) Area area, @Local(argsOnly = true, ordinal = 0) boolean selected)
     {
-        return refreshedui$greyClips() ? refreshedui$fill(context, clips, area, selected) : color;
+        return refreshedui$greyClips() && !selected ? refreshedui$fill(context, clips, area) : color;
     }
 
     @ModifyArg(
@@ -109,18 +104,18 @@ public abstract class UIClipRendererMixin
     )
     private int refreshedui$greyDisabled(int color, @Local(argsOnly = true) UIContext context, @Local(argsOnly = true) UIClips clips, @Local(argsOnly = true) Area area, @Local(argsOnly = true, ordinal = 0) boolean selected)
     {
-        return refreshedui$greyClips() ? refreshedui$fill(context, clips, area, selected) : color;
+        return refreshedui$greyClips() && !selected ? refreshedui$fill(context, clips, area) : color;
     }
 
-    /** Outline always takes the type colour (half alpha when disabled), selected included. */
+    /** Outline takes the type colour (half alpha when disabled); a selected clip keeps BBS' white frame. */
     @ModifyArg(
         method = "renderClip",
         at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;outline(FFFFI)V"),
         index = 4
     )
-    private int refreshedui$typeOutline(int color, @Local(argsOnly = true) Clip clip, @Local ClipFactoryData data)
+    private int refreshedui$typeOutline(int color, @Local(argsOnly = true) Clip clip, @Local ClipFactoryData data, @Local(argsOnly = true, ordinal = 0) boolean selected)
     {
-        if (!refreshedui$greyClips())
+        if (!refreshedui$greyClips() || selected)
         {
             return color;
         }
