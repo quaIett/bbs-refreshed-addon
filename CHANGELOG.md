@@ -1,12 +1,22 @@
 # Changelog
 
+## 1.3.2
+
+Requires BBS FS 2.7.
+
+### Changed
+
+- Grey clips have softly rounded corners.
+- Grey clips: the envelope graph is visible again and takes the clip's colour.
+
 ## 1.3.1
 
-### Changes
+Requires BBS FS 2.7.
 
-- Row hover highlights fade in and out twice as fast.
-- Grey clips: a selected clip keeps BBS' own fill and white frame; only hover lightens the grey.
-- Grey clips have softly rounded corners.
+### Changed
+
+- Row highlights fade in and out twice as fast.
+- Grey clips: a selected clip keeps the standard BBS look with the white frame; only hovering lightens the grey.
 
 ## 1.3.0
 
