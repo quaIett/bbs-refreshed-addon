@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+### Changes
+
+- Row hover highlights fade in and out twice as fast.
+
 ## 1.3.0
 
 This release requires BBS FS 2.7.
