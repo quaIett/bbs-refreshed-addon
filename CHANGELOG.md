@@ -5,6 +5,7 @@
 ### Changes
 
 - Row hover highlights fade in and out twice as fast.
+- Grey clips: a selected clip keeps BBS' own fill and white frame; only hover lightens the grey.
 
 ## 1.3.0
 
