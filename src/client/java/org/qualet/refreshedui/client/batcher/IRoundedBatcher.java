@@ -20,6 +20,9 @@ public interface IRoundedBatcher
     /** Rounded border with a rounded inset fill, both in one batch. {@code inset} is the border thickness. */
     void roundedFrame(float x, float y, float w, float h, float radius, float inset, int borderColor, int fillColor);
 
+    /** 1px rounded outline inside the rect (like BBS' {@code outline}), no fill; safe for translucent colours. */
+    void roundedOutline(float x, float y, float w, float h, float radius, int color);
+
     /**
      * A 1px rounded outline drawn OVER already-painted content: the ring in {@code borderColor}, and
      * everything outside the outer curve (inside the rect bounds) repainted in {@code outsideColor}, so
