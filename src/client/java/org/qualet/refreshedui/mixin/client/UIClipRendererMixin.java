@@ -1,5 +1,7 @@
 package org.qualet.refreshedui.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import mchorse.bbs_mod.BBSSettings;
 import mchorse.bbs_mod.camera.clips.ClipFactoryData;
@@ -8,11 +10,14 @@ import mchorse.bbs_mod.ui.film.clips.renderer.UIClipRenderer;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
+import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.utils.clips.Clip;
 import mchorse.bbs_mod.utils.colors.Colors;
 import mchorse.bbs_mod.utils.colors.Oklab;
 import org.qualet.refreshedui.RefreshedUiAddon;
+import org.qualet.refreshedui.client.batcher.IRoundedBatcher;
 import org.qualet.refreshedui.client.ui.IClipHover;
+import org.qualet.refreshedui.client.ui.UICornerRadii;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,7 +32,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *   audio/video waveform backing, disabled hatch) is one neutral grey, a few lightness steps above the surface
  *   ladder so clips read on both deep and base track rows; the clip type's colour moves to the outline, which
  *   no longer turns white — a hovered clip lifts its fill toward white a little, a selected one more
- *   ({@code UIClipsMixin} drops BBS' white hover frame).</li>
+ *   ({@code UIClipsMixin} drops BBS' white hover frame);</li>
+ *   <li>with the same setting every clip (selected too) gets a very soft {@link UICornerRadii#clips()} rounding on
+ *   its fill, disabled hatch and outline.</li>
  * </ul>
  */
 @Mixin(UIClipRenderer.class)
@@ -97,29 +104,58 @@ public abstract class UIClipRendererMixin
         return refreshedui$greyClips() && !selected ? refreshedui$fill(context, clips, area) : color;
     }
 
-    @ModifyArg(
+    @WrapOperation(
         method = "renderClip",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;iconArea(Lmchorse/bbs_mod/ui/utils/icons/Icon;IFFFF)V"),
-        index = 1
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;iconArea(Lmchorse/bbs_mod/ui/utils/icons/Icon;IFFFF)V")
     )
-    private int refreshedui$greyDisabled(int color, @Local(argsOnly = true) UIContext context, @Local(argsOnly = true) UIClips clips, @Local(argsOnly = true) Area area, @Local(argsOnly = true, ordinal = 0) boolean selected)
+    private void refreshedui$greyDisabled(Batcher2D batcher, Icon icon, int color, float x, float y, float w, float h, Operation<Void> original, @Local(argsOnly = true) UIContext context, @Local(argsOnly = true) UIClips clips, @Local(argsOnly = true) Area area, @Local(argsOnly = true, ordinal = 0) boolean selected)
     {
-        return refreshedui$greyClips() && !selected ? refreshedui$fill(context, clips, area) : color;
+        if (!refreshedui$greyClips())
+        {
+            original.call(batcher, icon, color, x, y, w, h);
+
+            return;
+        }
+
+        ((IRoundedBatcher) batcher).roundedIconArea(icon, x, y, w, h, UICornerRadii.clips(), selected ? color : refreshedui$fill(context, clips, area));
+    }
+
+    /** Plain fill (the audio waveform backing has its own hook in {@code UIAudioClipRendererMixin}). */
+    @WrapOperation(
+        method = "renderBackground",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;box(FFFFI)V")
+    )
+    private void refreshedui$roundedFill(Batcher2D batcher, float x1, float y1, float x2, float y2, int color, Operation<Void> original)
+    {
+        if (refreshedui$greyClips())
+        {
+            ((IRoundedBatcher) batcher).roundedBox(x1, y1, x2 - x1, y2 - y1, UICornerRadii.clips(), color);
+        }
+        else
+        {
+            original.call(batcher, x1, y1, x2, y2, color);
+        }
     }
 
     /** Outline takes the type colour (half alpha when disabled); a selected clip keeps BBS' white frame. */
-    @ModifyArg(
+    @WrapOperation(
         method = "renderClip",
-        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;outline(FFFFI)V"),
-        index = 4
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/framework/elements/utils/Batcher2D;outline(FFFFI)V")
     )
-    private int refreshedui$typeOutline(int color, @Local(argsOnly = true) Clip clip, @Local ClipFactoryData data, @Local(argsOnly = true, ordinal = 0) boolean selected)
+    private void refreshedui$typeOutline(Batcher2D batcher, float x1, float y1, float x2, float y2, int color, Operation<Void> original, @Local(argsOnly = true) Clip clip, @Local ClipFactoryData data, @Local(argsOnly = true, ordinal = 0) boolean selected)
     {
-        if (!refreshedui$greyClips() || selected)
+        if (!refreshedui$greyClips())
         {
-            return color;
+            original.call(batcher, x1, y1, x2, y2, color);
+
+            return;
         }
 
-        return (clip.enabled.get() ? Colors.A100 : Colors.A50) | (data.color & Colors.RGB);
+        if (!selected)
+        {
+            color = (clip.enabled.get() ? Colors.A100 : Colors.A50) | (data.color & Colors.RGB);
+        }
+
+        ((IRoundedBatcher) batcher).roundedOutline(x1, y1, x2 - x1, y2 - y1, UICornerRadii.clips(), color);
     }
 }

@@ -22,6 +22,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Adds the addon's rounded-rectangle primitives to BBS's {@link Batcher2D} as {@code @Unique}
@@ -506,6 +508,139 @@ public abstract class Batcher2DMixin implements IRoundedBatcher
 
         emitRoundedSliceMask(mesh, m, innerX, innerY, innerW, innerH, innerR, fillColor);
         this.refreshedui$draw(mesh, this.getRoundedRectMask());
+    }
+
+    @Unique
+    private static final int ROUNDED_RING_MASK_SIZE = 16;
+    @Unique
+    private static final Map<Integer, Texture> roundedRingMasks = new HashMap<>();
+
+    /* Quarter-ring mask for a corner cell of r px with a 1px band: UV (0,0) outer corner, (1,1) inner. Keyed by
+     * radius in quarter px since the band's share of the cell depends on it. */
+    @Unique
+    private Texture getRoundedRingMask(float r)
+    {
+        int key = Math.round(r * 4F);
+
+        synchronized (Batcher2D.class)
+        {
+            Texture cached = roundedRingMasks.get(key);
+
+            if (cached == null || !cached.isValid())
+            {
+                cached = buildRoundedRingMask(ROUNDED_RING_MASK_SIZE, key / 4F);
+                roundedRingMasks.put(key, cached);
+            }
+
+            return cached;
+        }
+    }
+
+    /* Supersampled texel coverage of the band between the outer arc (radius size) and the inner one (1px in). */
+    @Unique
+    private static Texture buildRoundedRingMask(int size, float r)
+    {
+        Pixels pixels = Pixels.fromSize(size, size);
+        ByteBuffer buf = pixels.getBuffer();
+        float outer = size;
+        float inner = Math.max(0F, size - size / r);
+        int samples = 4;
+
+        buf.position(0);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+
+                for (int sy = 0; sy < samples; sy++)
+                {
+                    for (int sx = 0; sx < samples; sx++)
+                    {
+                        float dx = size - (x + (sx + 0.5F) / samples);
+                        float dy = size - (y + (sy + 0.5F) / samples);
+                        float d = (float) Math.sqrt(dx * dx + dy * dy);
+
+                        if (d <= outer && d >= inner)
+                        {
+                            hits++;
+                        }
+                    }
+                }
+
+                buf.put((byte) 255);
+                buf.put((byte) 255);
+                buf.put((byte) 255);
+                buf.put((byte) Math.round(hits * 255F / (samples * samples)));
+            }
+        }
+
+        buf.position(0);
+
+        Texture texture = Texture.textureFromPixels(pixels, GL11.GL_LINEAR);
+
+        texture.bind();
+        texture.setWrap(GL12.GL_CLAMP_TO_EDGE);
+        texture.unbind();
+        texture.setClearable(false);
+
+        return texture;
+    }
+
+    /**
+     * 1px rounded outline inside the rect, translucent-safe (no overdraw): straight edges are plain boxes, the
+     * four corners sample a quarter-ring mask. Below a 1px radius it is BBS' square {@code outline}.
+     */
+    @Override
+    public void roundedOutline(float x, float y, float w, float h, float radius, int color)
+    {
+        if (w <= 0F || h <= 0F)
+        {
+            return;
+        }
+
+        float r = clampRoundedRectRadius(w, h, radius);
+
+        if (r < 1F)
+        {
+            this.box(x, y, x + 1F, y + h, color);
+            this.box(x + w - 1F, y, x + w, y + h, color);
+            this.box(x + 1F, y, x + w - 1F, y + 1F, color);
+            this.box(x + 1F, y + h - 1F, x + w - 1F, y + h, color);
+
+            return;
+        }
+
+        float x0 = x;
+        float y0 = y;
+        float x1 = x + w;
+        float y1 = y + h;
+        float xa = x0 + r;
+        float xb = x1 - r;
+        float ya = y0 + r;
+        float yb = y1 - r;
+
+        if (xb > xa)
+        {
+            this.box(xa, y0, xb, y0 + 1F, color);
+            this.box(xa, y1 - 1F, xb, y1, color);
+        }
+        if (yb > ya)
+        {
+            this.box(x0, ya, x0 + 1F, yb, color);
+            this.box(x1 - 1F, ya, x1, yb, color);
+        }
+
+        Matrix3x2fc m = this.refreshedui$matrix();
+        GuiTexturedMesh mesh = new GuiTexturedMesh();
+
+        emitMaskQuad(mesh, m, x0, y0, xa, ya, 0F, 0F, 1F, 0F, 1F, 1F, 0F, 1F, color); /* TL */
+        emitMaskQuad(mesh, m, xb, y0, x1, ya, 1F, 0F, 0F, 0F, 0F, 1F, 1F, 1F, color); /* TR */
+        emitMaskQuad(mesh, m, xb, yb, x1, y1, 1F, 1F, 0F, 1F, 0F, 0F, 1F, 0F, color); /* BR */
+        emitMaskQuad(mesh, m, x0, yb, xa, y1, 0F, 1F, 1F, 1F, 1F, 0F, 0F, 0F, color); /* BL */
+
+        this.refreshedui$draw(mesh, this.getRoundedRingMask(r));
     }
 
     /**

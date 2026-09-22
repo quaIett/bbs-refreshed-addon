@@ -21,6 +21,7 @@
         "UIClickableMixin",
         "UICirculateMixin",
         "UIClipMixin",
+        "UIAudioClipRendererMixin",
         "UIClipRendererMixin",
         "UIClipsMixin",
         "UIColorMixin",
