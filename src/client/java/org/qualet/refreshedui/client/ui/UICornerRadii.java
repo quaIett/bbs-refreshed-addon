@@ -33,6 +33,12 @@ public final class UICornerRadii
         return radius();
     }
 
+    /** Timeline clip strips with "Grey clips" on — deliberately much softer than the chrome. */
+    public static float clips()
+    {
+        return 3F;
+    }
+
     /**
      * {@link #interfaceChrome()} capped so the radius never exceeds half of the shorter side
      * of a {@code w}×{@code h} widget (minus a 0.5px margin to keep the anti-aliased edge inside).
