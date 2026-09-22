@@ -20,8 +20,8 @@ import java.util.Map;
  */
 public final class HoverFade
 {
-    public static final long IN_MS = 70L;
-    public static final long OUT_MS = 220L;
+    public static final long IN_MS = 35L;
+    public static final long OUT_MS = 110L;
 
     /** A row not drawn for this long starts over — it was scrolled away, or its list was hidden. */
     private static final long STALE_MS = 250L;
