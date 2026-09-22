@@ -62,6 +62,7 @@
         "UISectionBodyRevealMixin",
         "UISectionRevealMixin",
         "UISettingsOverlayPanelMixin",
+        "UIShaderOptionCellMixin",
         "UISelectorsOverlayPanelMixin",
         "UISliderTrackpadMixin",
         "UITabStripMixin",
