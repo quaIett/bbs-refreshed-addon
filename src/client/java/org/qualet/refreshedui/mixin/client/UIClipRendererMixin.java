@@ -12,6 +12,8 @@ import mchorse.bbs_mod.ui.framework.elements.utils.Batcher2D;
 import mchorse.bbs_mod.ui.utils.Area;
 import mchorse.bbs_mod.ui.utils.icons.Icon;
 import mchorse.bbs_mod.utils.clips.Clip;
+import mchorse.bbs_mod.utils.clips.Envelope;
+import mchorse.bbs_mod.utils.colors.Color;
 import mchorse.bbs_mod.utils.colors.Colors;
 import mchorse.bbs_mod.utils.colors.Oklab;
 import org.qualet.refreshedui.RefreshedUiAddon;
@@ -34,7 +36,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *   no longer turns white — a hovered clip lifts its fill toward white a little, a selected one more
  *   ({@code UIClipsMixin} drops BBS' white hover frame);</li>
  *   <li>with the same setting every clip (selected too) gets a very soft {@link UICornerRadii#clips()} rounding on
- *   its fill, disabled hatch and outline.</li>
+ *   its fill, disabled hatch and outline;</li>
+ *   <li>the envelope preview (BBS' 25% black wash, lost on grey) is drawn in the half-alpha type colour on
+ *   unselected grey clips.</li>
  * </ul>
  */
 @Mixin(UIClipRenderer.class)
@@ -53,6 +57,10 @@ public abstract class UIClipRendererMixin
 
     @Unique
     private static int greySource = -1;
+
+    /** Envelope colour for the clip being drawn, 0 = stock; set only around the {@code renderEnvelope} call. */
+    @Unique
+    private static int envelopeColor;
 
     @Unique
     private static int grey;
@@ -157,5 +165,33 @@ public abstract class UIClipRendererMixin
         }
 
         ((IRoundedBatcher) batcher).roundedOutline(x1, y1, x2 - x1, y2 - y1, UICornerRadii.clips(), color);
+    }
+
+    /** Envelope tint only: here BBS records the envelope into the deferred GUI, so no shader state to restore. */
+    @WrapOperation(
+        method = "renderClip",
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/ui/film/clips/renderer/UIClipRenderer;renderEnvelope(Lmchorse/bbs_mod/ui/framework/UIContext;Lmchorse/bbs_mod/utils/clips/Envelope;IIIII)V")
+    )
+    private void refreshedui$typeEnvelope(UIClipRenderer<?> renderer, UIContext context, Envelope envelope, int duration, int x1, int y1, int x2, int y2, Operation<Void> original, @Local ClipFactoryData data, @Local(argsOnly = true, ordinal = 0) boolean selected)
+    {
+        envelopeColor = refreshedui$greyClips() && !selected ? Colors.A50 | (data.color & Colors.RGB) : 0;
+
+        try
+        {
+            original.call(renderer, context, envelope, duration, x1, y1, x2, y2);
+        }
+        finally
+        {
+            envelopeColor = 0;
+        }
+    }
+
+    @Redirect(
+        method = {"renderEnvelopesKeyframes", "renderSimpleEnvelope"},
+        at = @At(value = "INVOKE", target = "Lmchorse/bbs_mod/utils/colors/Color;getARGBColor()I")
+    )
+    private int refreshedui$envelopeColor(Color color)
+    {
+        return envelopeColor != 0 ? envelopeColor : color.getARGBColor();
     }
 }
